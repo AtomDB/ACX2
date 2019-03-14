@@ -1,0 +1,18 @@
+This folder contains the scripts used to generate the data files that
+go in to the model. It does not contain the Kronos database at this point,
+which will be required. This should be put in a folder "kronos" below this
+one.
+
+To create a new release:
+copy a filemap file into the folder. This will be used for wavelengths, etc.
+It will also be merged with AUTOSTRUCTURE data if there is insufficient high-n
+data in the file.
+
+There are some hardwired files and paths that need to be set. I will not go in
+to these here. 
+
+run the code for each ion:
+python3 acx_process.py Z z1 Donorsym
+e.g.
+python3 acx_process.py 6 5 H
+
