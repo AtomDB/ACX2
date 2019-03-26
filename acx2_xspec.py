@@ -1,11 +1,19 @@
-import acx2_xspec, numpy, xspec
+import acx2, numpy, xspec
+
+# CHANGE THESE FILE PATHS TO REFLECT YOUR SYSTEM
+
+Hsigmafile  = 'acx2_H_v1_sigma.fits'
+Hlinefile   = 'acx2_H_v1_line.fits'
+Hcontfile   = 'acx2_H_v1_cont.fits'
+Hesigmafile = 'acx2_He_v1_sigma.fits'
+Helinefile  = 'acx2_He_v1_line.fits'
+Hecontfile  = 'acx2_He_v1_cont.fits'
+
+
+
 
 #initialize CX object
-acx2_acxmodelobject = acx2_xspec.ACXModel()
-
-
-
-
+acx2_acxmodelobject = acx2.ACXModel()
 
 # These are the definitions XSPEC uses for the inputs
 
@@ -18,61 +26,61 @@ acx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
             "abund         \"\"      1.0 0.0 0.0 10.0 10.0 0.01")
 
 vacx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
-             "collnpar    \"kev/u\" 1.0 0.01 0.2 100. 1000. 0.01",
+             "collnpar    \"kev/u,km/s\" 1.0 0.01 0.2 100. 1000. 0.01",
              "collntype     \"\"      1.0 1.0 1.0 4.0 4.0 -0.01",
              "acxmodel      \"\"      8.0 1.0 1.0 16.0 16.0 -0.01",
              "recombtype    \"\"      1.0 1.0 1.0 2.0 2.0 -0.01",
              "Hefrac        \"\"      0.09 0.0 0.0 1.0 1.0 -0.01",
-             "H             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "He            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "C             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "N             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "O             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "F             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "Ne            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "Mg            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "Al            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "Si            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "S             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "Ar            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "Ca            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "Fe            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-             "Ni            \"\"      1.0 0.0 0.0 10.0 10.0 0.01")
+             "H             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "He            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "C             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "N             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "O             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "F             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "Ne            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "Mg            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "Al            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "Si            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "S             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "Ar            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "Ca            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "Fe            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "Ni            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01")
 
 
 vvacx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
-              "collnpar    \"kev/u\" 1.0 0.01 0.2 100. 1000. 0.01",
+              "collnpar    \"kev/u,km/s\" 1.0 0.01 0.2 100. 1000. 0.01",
               "collntype     \"\"      1.0 1.0 1.0 4.0 4.0 -0.01",
               "acxmodel      \"\"      8.0 1.0 1.0 16.0 16.0 -0.01",
               "recombtype    \"\"      1.0 1.0 1.0 2.0 2.0 -0.01",
               "Hefrac        \"\"      0.09 0.0 0.0 1.0 1.0 -0.01",
-              "H             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "He            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Li            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Be            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "B             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "C             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "N             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "O             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "F             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Ne            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Na            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Mg            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Al            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Si            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "P             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "S             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Cl            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Ar            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "K             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Ca            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Sc            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Ti            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "V             \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Cr            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Mn            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Fe            \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
-              "Ni            \"\"      1.0 0.0 0.0 10.0 10.0 0.01")
+              "H             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "He            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Li            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Be            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "B             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "C             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "N             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "O             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "F             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Ne            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Na            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Mg            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Al            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Si            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "P             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "S             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Cl            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Ar            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "K             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Ca            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Sc            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Ti            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "V             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Cr            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Mn            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Fe            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "Ni            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01")
 
 def acx2(engs, params, flux):
 
@@ -110,15 +118,15 @@ def acx2(engs, params, flux):
   if len(acx2_acxmodelobject.DonorList)==0:
     # Add a donor - hydrogen in this case (default will have H, He)
     acx2_acxmodelobject.add_donor('H', \
-                                  'acx2_H_v1_line.fits', \
-                                  'acx2_H_v1_cont.fits', \
-                                  'acx2_H_v1_sigma.fits',\
+                                  Hlinefile, \
+                                  Hcontfile, \
+                                  Hsigmafile,\
                                   elements = numpy.array(elements))
 
     acx2_acxmodelobject.add_donor('He', \
-                                  'acx2_He_v1_line.fits', \
-                                  'acx2_He_v1_cont.fits', \
-                                  'acx2_He_v1_sigma.fits',\
+                                  Helinefile, \
+                                  Hecontfile, \
+                                  Hesigmafile,\
                                   elements = numpy.array(elements))
 
   # check energies
@@ -196,15 +204,15 @@ def vacx2(engs, params, flux):
   if len(acx2_acxmodelobject.DonorList)==0:
     # Add a donor - hydrogen in this case (default will have H, He)
     acx2_acxmodelobject.add_donor('H', \
-                                  'acx2_H_v1_line.fits', \
-                                  'acx2_H_v1_cont.fits', \
-                                  'acx2_H_v1_sigma.fits',\
+                                  Hlinefile, \
+                                  Hcontfile, \
+                                  Hsigmafile,\
                                   elements = elements)
 
     acx2_acxmodelobject.add_donor('He', \
-                                  'acx2_He_v1_line.fits', \
-                                  'acx2_He_v1_cont.fits', \
-                                  'acx2_He_v1_sigma.fits',\
+                                  Helinefile, \
+                                  Hecontfile, \
+                                  Hesigmafile,\
                                   elements = elements)
 
   # check energies
@@ -290,14 +298,14 @@ def vvacx2(engs, params, flux):
   if len(acx2_acxmodelobject.DonorList)==0:
     # Add a donor - hydrogen in this case (default will have H, He)
     acx2_acxmodelobject.add_donor('H', \
-                                  'acx2_H_v1_line.fits', \
-                                  'acx2_H_v1_cont.fits', \
-                                  'acx2_H_v1_sigma.fits',\
+                                  Hlinefile, \
+                                  Hcontfile, \
+                                  Hsigmafile,\
                         elements = elements)
     acx2_acxmodelobject.add_donor('He', \
-                                  'acx2_He_v1_line.fits', \
-                                  'acx2_He_v1_cont.fits', \
-                                  'acx2_He_v1_sigma.fits',\
+                                  Helinefile, \
+                                  Hecontfile, \
+                                  Hesigmafile,\
                         elements = elements)
 
 
