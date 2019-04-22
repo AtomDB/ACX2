@@ -500,7 +500,9 @@ class ACXDonorModel():
                abundset='AG89',\
                elements=list(range(1,31)),\
                acxmodel = 8, \
-               recombtype = SINGLE_RECOMBINATION):
+               recombtype = SINGLE_RECOMBINATION,\
+               collisiontype = 1):
+
 
     self.donor = donor.lower() # store in lower case
     self.donor_linefile = os.path.expandvars(donor_linefile)
@@ -579,6 +581,8 @@ class ACXDonorModel():
     self.temperature = False
 
     self.acxmodel= acxmodel
+
+    self.set_collisiontype(collisiontype)
 
     # temporary things
     self.datacache={}
@@ -701,7 +705,7 @@ class ACXDonorModel():
     -------
     None
     """
-
+    print("HELLO", colltype)
     if colltype == 1:
       if collunits == 'default':
         self.collisiontype = 1
