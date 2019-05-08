@@ -1,12 +1,13 @@
-The AtomDB CX model is a model of charge exchange during a collision between a recombining charged ion and a donor atom or ion. As the electron is transferred from the donor to the recombining ion, it forms the recombined ion in an excited state. As this recombined ion relaxes to its ground state, it releases many photons.
+The AtomDB CX model is a model of charge exchange during a collision between a recombining charged ion and a donor atom or ion. The electron is transferred from the donor to the recombining ion, forming a recombined ion often in an excited state. As this recombined ion relaxes to its ground state, it releases a cascade of photons with relative intensities charactersitic of CX recombination.
 
-An original version of ACX was released in 2016, which used empirical formulae for CX emission of all ions of all the elements up to nickel. These formulae, crucially, did not include any velocity dependent effects, which are important for correctly calculating the n, l and S of the excited levels captured into.
+An original version of ACX was released in 2016, which used empirical formulae for CX emission of all ions of all the elements up to nickel. These formulae, crucially, did not include any velocity dependent effects, which are important for correctly calculating the n, l and S of the excited levels captured into. In addition, spectral information was hardwired and difficult to update, resulting in updates to AtomDB not often being reflected in the following charge exchange spectra.
 
-We have now taken data from the Kronos database ([1]_, [2]_, [3]_), which covers many fully stripped and one electron ions, and included it here. This has created a much improved dataset, which correctly captures the energy dependence of the process for these ions. For other ions not in the Kronos, the data falls back on ACX1 behaviour.
+We have now taken CX cross section data from the Kronos database ([1]_, [2]_, [3]_), which covers many fully stripped and one electron recombining ions, and included it here. This has created a much improved dataset, which correctly captures the energy dependence of the process for these ions. For other ions not in the Kronos database, the model falls back on ACX1 behaviour.
 
-Once Kronos or ACX1 have been used to calculated the correct capture cross sections for each n, l and/or S shell, the data is combined with the AtomDB database (www.atomdb.org) to calculate the cascade path to ground, and the subsequent emissivities and wavelengths.
+Once Kronos or ACX1 have been used to calculate the correct capture cross sections for each n, l and/or S shell, the data is combined with the AtomDB database (www.atomdb.org) to calculate the cascade path to ground, and the subsequent emissivities and wavelengths. For ions with capture in to highly excited levels which AtomDB doesn't contain, AUTOSTRUCTURE calculations are preformed to get energy levels, wavelength and A-values for these transtitions. The result is a set of 3 files for each donor ion. The sigma file contains the cross section information for each ion. The line and cont[inuum] files contain the line emission and continuum emission from each shell capture in to, with a resolution appropriate for the model in question. For example, for ions with *nlS* resolved Kronos data, a spectrum is produced for each *n*, *l* and *S* capture and subsequent cascade. Thus there can be numerous spectra for each ion - there are 239 entries for Cl\ :sup:`7+`\ reflecting each *n*, *l* and *S* which Kronos contains cross sections for. For ACX-level data, the spectra are calculated for each relevant *n* and the four *l* distributions, as outlined in the ACX documentation (even, statistical, Landau-Zener and separable). 
 
-Further details will be given FIXME - finish this.
+For a given interaction velocity or energy, the model calculated the center of mass energy (which the Kronos database is tabulated on), and the cross sections are obtained for capture into each shell. For each shell where the cross section is greater than zero, a spectrum is calculated from the *line* and *cont* files. These are then multiplied by the appropriate cross section and summed to give the spectrum for CX of a particular ion at that particular temperature.
+
 
 .. [1] Mullen, P. D., et al. ApJS 224, 31 (2016)
 .. [2] Mullen, P. D., et al. ApJ 844, 7 (2017)
@@ -35,7 +36,7 @@ Usage
 =====
 
 
-Each model is ACX2 can have an arbitrary set of donors. By default for the XSPEC model these are neutral H and He, but others may be selected.
+Each model is ACX2 can have an arbitrary set of donors. By default for the XSPEC model these are neutral H and He, but others may be selected. Additional input files will be required for these - please contact the project via the AtomDB or GitHub pages to make or discuss requests.
 
 ----------
 Data Files
@@ -60,6 +61,7 @@ The ``acx2.py`` file contains a range of classes which can be used to model diff
 |Kronos Resolution | Typical recombining ion | ACX2 handling                                   |
 +==================+=========================+=================================================+
 |n, l, S resolved  | hydrogenic              | Capture into each n, l, S                       |
+|                  | bare C,N,O,Ne           |                                                 |
 +------------------+-------------------------+-------------------------------------------------+
 |n resolved        | bare                    | Capture into each n, ACX for l distribution     |
 +------------------+-------------------------+-------------------------------------------------+
