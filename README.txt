@@ -154,10 +154,13 @@ Model parameters
 ===============
 Version History
 ===============
-0.1.0
+1.0.0
 March 15th 2019
 Initial release
 
-
+1.0.1
+October 25th 2019
+Fixed error in vacx2 XSPEC interface, which specified but did not implement fluorine 
+leading to an off-by-one error for all higher-Z elements
 
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
