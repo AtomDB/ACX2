@@ -163,4 +163,9 @@ October 25th 2019
 Fixed error in vacx2 XSPEC interface, which specified but did not implement fluorine 
 leading to an off-by-one error for all higher-Z elements
 
+1.0.2
+February 27th 2020
+Error in velocity unit conversion corrected, thanks to Gabrielle Betancourt-Martinez for reporting the bug. This will not have affected fits performed through XSPEC
+
+
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
