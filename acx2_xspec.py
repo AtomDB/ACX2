@@ -1,4 +1,5 @@
-import numpy, xspec, acx2
+import numpy, xspec
+import acx2 as acx2model
 
 # CHANGE THESE FILE PATHS TO REFLECT YOUR SYSTEM
 
@@ -13,7 +14,7 @@ Hecontfile  = 'acx2_He_v1_cont.fits'
 
 
 #initialize CX object
-acx2_acxmodelobject = acx2.ACXModel()
+acx2_acxmodelobject = acx2model.ACXModel()
 
 # These are the definitions XSPEC uses for the inputs
 

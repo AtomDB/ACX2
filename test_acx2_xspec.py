@@ -5,11 +5,12 @@ import acx2_xspec, numpy, pylab
 
 
 Z=9
-m1 = acx2_xspec.ACXDonorModel('H', \
-                'tmp_cxline2.fits', \
-                'tmp_cxcont.fits', \
-                'tmp_cx_sigma.fits',\
-                elements=[1,2,6,7,8,9,10,12,13,14,16,18,20,26,28])
+m1 = acx2_xspec.acx2model.ACXDonorModel('H', \
+                '/export1/projects/ACX2/acx2_H_v1_line.fits', \
+                '/export1/projects/ACX2/acx2_H_v1_cont.fits', \
+                '/export1/projects/ACX2/acx2_H_v1_sigma.fits', \
+                 elements=[6])
+#                 elements=[1,2,6,7,8,9,10,12,13,14,16,18,20,26,28])
 
 
 wvbins = numpy.linspace(10,400, 10001)
