@@ -759,7 +759,7 @@ class ACXDonorModel():
           self.collvelocity[Z] = 1e5* numpy.sqrt(4786031.3*self.collenergy[Z]/25.)
         elif self.collisionunits.lower() in ['ev/u', 'ev/amu']:
           self.collenergy[Z] = collisionparam/1000.0
-          self.collvelocity[Z] = 1e5* numpy.sqrt(4786031.3*self.collenergy[Z]*1e-3/25.)
+          self.collvelocity[Z] = 1e5* numpy.sqrt(4786031.3*self.collenergy[Z]/25.)
         else:
           print("set_collisionparam: unknown collision units %s"%(self.collisionunits))
           return
@@ -770,7 +770,7 @@ class ACXDonorModel():
           self.collvelocity[Z] = collisionparam*1.0
         elif self.collisionunits.lower() == 'km/s':
           self.collvelocity[Z] = collisionparam*1e5
-        self.collenergy[Z] = 25 * (collisionparam/1e5)**2/4786031.3
+        self.collenergy[Z] = (25/4786031.3) * (self.collvelocity[Z]/1e5)**2
 
       elif self.collisiontype == 3:
           # donor ion is moving
