@@ -705,7 +705,6 @@ class ACXDonorModel():
     -------
     None
     """
-    print("HELLO", colltype)
     if colltype == 1:
       if collunits == 'default':
         self.collisiontype = 1
@@ -928,7 +927,7 @@ class ACXDonorModel():
 
     for Z in self.elements:
 #        if not Z in self.ionfrac.keys():
-          self.ionfrac[Z] = pyatomdb.atomdb.apec.solve_ionbal_eigen(Z, self.temperature,\
+          self.ionfrac[Z] = pyatomdb.atomdb.apec.return_ionbal(Z, self.temperature,\
                                                                    teunit='kev', datacache=self.datacache)
     self.ionfrac_from_temperature = True
 
