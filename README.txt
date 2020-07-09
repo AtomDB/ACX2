@@ -167,5 +167,8 @@ leading to an off-by-one error for all higher-Z elements
 February 27th 2020
 Error in velocity unit conversion corrected, thanks to Gabrielle Betancourt-Martinez for reporting the bug. This will not have affected fits performed through XSPEC
 
+1.0.3
+July 9th 2020
+Updated code for compatibility with changes in the PyAtomDB interface
 
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
