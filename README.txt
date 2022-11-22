@@ -4,7 +4,7 @@ An original version of ACX was released in 2016, which used empirical formulae f
 
 We have now taken CX cross section data from the Kronos database ([1]_, [2]_, [3]_), which covers many fully stripped and one electron recombining ions, and included it here. This has created a much improved dataset, which correctly captures the energy dependence of the process for these ions. For other ions not in the Kronos database, the model falls back on ACX1 behaviour.
 
-Once Kronos or ACX1 have been used to calculate the correct capture cross sections for each n, l and/or S shell, the data is combined with the AtomDB database (www.atomdb.org) to calculate the cascade path to ground, and the subsequent emissivities and wavelengths. For ions with capture in to highly excited levels which AtomDB doesn't contain, AUTOSTRUCTURE calculations are preformed to get energy levels, wavelength and A-values for these transtitions. The result is a set of 3 files for each donor ion. The sigma file contains the cross section information for each ion. The line and cont[inuum] files contain the line emission and continuum emission from each shell capture in to, with a resolution appropriate for the model in question. For example, for ions with *nlS* resolved Kronos data, a spectrum is produced for each *n*, *l* and *S* capture and subsequent cascade. Thus there can be numerous spectra for each ion - there are 239 entries for Cl\ :sup:`7+`\ reflecting each *n*, *l* and *S* which Kronos contains cross sections for. For ACX-level data, the spectra are calculated for each relevant *n* and the four *l* distributions, as outlined in the ACX documentation (even, statistical, Landau-Zener and separable). 
+Once Kronos or ACX1 have been used to calculate the correct capture cross sections for each n, l and/or S shell, the data is combined with the AtomDB database (www.atomdb.org) to calculate the cascade path to ground, and the subsequent emissivities and wavelengths. For ions with capture in to highly excited levels which AtomDB doesn't contain, AUTOSTRUCTURE calculations are preformed to get energy levels, wavelength and A-values for these transtitions. The result is a set of 3 files for each donor ion. The sigma file contains the cross section information for each ion. The line and cont[inuum] files contain the line emission and continuum emission from each shell capture in to, with a resolution appropriate for the model in question. For example, for ions with *nlS* resolved Kronos data, a spectrum is produced for each *n*, *l* and *S* capture and subsequent cascade. Thus there can be numerous spectra for each ion - there are 239 entries for Cl\ :sup:`7+`\ reflecting each *n*, *l* and *S* which Kronos contains cross sections for. For ACX-level data, the spectra are calculated for each relevant *n* and the four *l* distributions, as outlined in the ACX documentation (even, statistical, Landau-Zener and separable).
 
 For a given interaction velocity or energy, the model uses the center of mass energy to obtain the cross section for capture into each shell from Kronos. For each shell where the cross section is greater than zero, a spectrum is calculated from the *line* and *cont* files. These are then multiplied by the appropriate cross section and summed to give the spectrum for CX of a particular ion.
 
@@ -150,7 +150,7 @@ Model parameters
 
 .. note::
    The units for collision velocity in XSPEC are km/s, not cm/s as in the underlying ACX models. This is to keep the numbers closer to 1, which XSPEC likes.
-   
+
 ++++++++++++++++++++++++++
 Normalization of the model
 ++++++++++++++++++++++++++
@@ -159,51 +159,44 @@ Ths model deals with two emissivities, which can get confusing. The photon emiss
 
 .. math::
  \epsilon_{ij}=N_iA_{ij}
- 
-That is, the number of emitted photons :math:`cm^{-3} s^{-1}` is the number density :math:`N_i` of ions in state :math:`i`, times the spontaneous transition probability :math:`A_{ij}`. 
+
+That is, the number of emitted photons :math:`cm^{-3} s^{-1}` is the number density :math:`N_i` of ions in state :math:`i`, times the spontaneous transition probability :math:`A_{ij}`.
 
 We can ease the calculation of :math:`N_i` by separating out the calculation:
 
 .. math::
   N_i = \frac{N_i}{N_{z1}}\frac{N_{z1}}{N_Z}\frac{N_Z}{N^r_H}N^r_H
-  
+
 where :math:`N_{z1}` is the ion abundance and :math:`N_{Z}` is the element abundance. The :math:`N_{z1}/N_{Z}` term is set by the temperature parameter, which is used to set the ion fraction. The :math:`N_{Z}/N^r_{H}`  is set for the recombining plasma by the abundance parameter, relative to the solar values of Anders and Grevesse 1989.
 
 The ACX2 model solves the :math:`N_i/N_{z1}` problem by setting up a radiative matrix, with levels populated by CX and then radiative decay to the ground state forming the rest of the matrix. The CX rate coefficient into level :math:`i` is given by
 
 .. math::
-  \alpha^{CX}_{i} (cm^{-3}s^{-1}) = \langle v_{com} \sigma_{i}(E)\rangle
+  \alpha^{CX}_{i} (cm^{3}s^{-1}) = \langle v_{com} \sigma_{i}(E)\rangle
 
-and the rate is 
+and the rate per recombining ion per second is
 
 .. math::
-  \alpha^{CX}_{i} (cm^{-3}s^{-1}) = \langle v_{com} \sigma_{i}(E)\rangle\ N^d_{H}
-  
+  \alpha^{CX}_{i} (s^{-1}) = \langle v_{com} \sigma_{i}(E)\rangle\ N^d_{H}
+
 We solve the radiative matrix to obtain :math:`N_i/N_{z1}`, without the donor densities included (as they are multipliers on all the diagonal matrix elements we are effectively just moving them outside the matrix). This leaves us with:
 
 .. math::
   \epsilon_{ij} = \frac{N_i}{N_{z1}}\frac{N_{z1}}{N_Z}\frac{N_Z}{N_H}N^r_HA_{ij}  N^d_{H}
-  
+
 ACX2 calculates the photon emissivity coefficient, :math:`\varepsilon_{ij}=\frac{N_i}{N_{z1}}A_{ij}`, and multiplies in the elemental and ion abundances based on the abundance and temperatures specified. This leaves:
 
 .. math::
   \epsilon_{ij} = \varepsilon_{ij} \frac{N_{z1}}{N_Z}\frac{N_Z}{N_H} N^r_H N^d_{H}
-  
+
   \epsilon_{ij} = \left(\mathrm{ACX2output}\right) N^r_H N^d_{H}
-  
+
 
 To convert this to a flux from a source to our instrument we integrate over the emitting volume and account for radiation over :math:`4\pi`. We also, at this point, repeat the process for the He donor and add the results, accounting for the different donor ion fractions.
 
 .. math::
 
   \Gamma_{ij} (cm^{-2}s^{-1}) =  \frac{\int (\mathrm{ACX2output}) N^r_H N^d_{(H+He)} dV} {4 \pi D^2}
-
-
-# out of the line is defined as  is calculated in photons cm\ :sup:`3` s\ :sup:`-1`, as:
-
-.. math::
- 
-  \varepsilon_{ij} (cm^{3}s^{-1}) = v_{com} \sigma_{i}(E) A_{ij}
 
 
 ++++++++++++++++++++++++++++++++
@@ -213,23 +206,23 @@ XSPEC Normalization of the model
 The geometric norm represents the geometric parts of the flux calculation with a single number:
 
 .. math::
- 
+
   \text{norm}_{\text{geom}} (cm^{-5}) =  \frac{\int N^r_H N^d_{(H+He)} dV} {4 \pi D^2}
 
 
 The XSPEC normalization is adjusted from the above in a few ways to make fitting more reliable. First, there is a factor of :math:`10^{10}` applied to bring the value closer to 1, which makes XSPEC fitting more reliable.
 
-Secondly, for versions :math:`\geq 1.1.0`, the normalization is divided by the center of mass velocity. This has been implemented to compensate for the increase in flux with an increase in velocity (since :math:`\varepsilon_{ij} \propto \langle v_{com} \sigma_{i}(E)\rangle`), which resulted in the norm being anticorrelated with the collnpar. As this value would be different for every ion, the correction factor is based on a carbon-12 recombining ion and a hydrogen donor. 
+Secondly, for versions :math:`\geq 1.1.0`, the normalization is divided by the center of mass velocity. This has been implemented to compensate for the increase in flux with an increase in velocity (since :math:`\varepsilon_{ij} \propto \langle v_{com} \sigma_{i}(E)\rangle`), which resulted in the norm being anticorrelated with the collnpar. As this value would be different for every ion, the correction factor is based on a carbon-12 recombining ion and a hydrogen donor.
 
 To recover the true emissivity of the plasma given an XSPEC fit result:
 
 #.  If using version :math:`\geq 1.1.0`, calculate the correction factor, cf:
 
     #. If collntype == 1: cf = numpy.sqrt(4786031.3*collnpar/25.)
-    #. If collntype == 2: cf = 1.0
+    #. If collntype == 2: cf = 1.0 * collnpar
     #. If collntype == 3: cf = 1.0 * collnpar/(1.0+12.0)  = collnpar/13
     #. If collntype == 4: cf = 12.0 * collnpar/(1.0+12.0)  = collnpar*12/13
-    
+
 #.  Else, cf = 1
 #.  :math:`\text{norm}_{\text{geom}} = \text{norm}_{\text{XSPEC}} * \text{cf} * 10^{-10}`
 
@@ -244,7 +237,7 @@ Initial release
 
 1.0.1
 October 25th 2019
-Fixed error in vacx2 XSPEC interface, which specified but did not implement fluorine 
+Fixed error in vacx2 XSPEC interface, which specified but did not implement fluorine
 leading to an off-by-one error for all higher-Z elements
 
 1.0.2
