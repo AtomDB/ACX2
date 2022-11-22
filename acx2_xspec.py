@@ -2,13 +2,13 @@ import numpy, xspec
 import acx2 as acx2model
 
 # CHANGE THESE FILE PATHS TO REFLECT YOUR SYSTEM
-
-Hsigmafile  = 'acx2_H_v1_sigma.fits'
-Hlinefile   = 'acx2_H_v1_line.fits'
-Hcontfile   = 'acx2_H_v1_cont.fits'
-Hesigmafile = 'acx2_He_v1_sigma.fits'
-Helinefile  = 'acx2_He_v1_line.fits'
-Hecontfile  = 'acx2_He_v1_cont.fits'
+tmpdir='/export1/projects/ACX2/'
+Hsigmafile  = tmpdir+'acx2_H_v1_sigma.fits'
+Hlinefile   = tmpdir+'acx2_H_v1_line.fits'
+Hcontfile   = tmpdir+'acx2_H_v1_cont.fits'
+Hesigmafile = tmpdir+'acx2_He_v1_sigma.fits'
+Helinefile  = tmpdir+'acx2_He_v1_line.fits'
+Hecontfile  = tmpdir+'acx2_He_v1_cont.fits'
 
 
 
@@ -20,17 +20,18 @@ acx2_acxmodelobject = acx2model.ACXModel()
 
 acx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
             "collnpar   \"kev/u,km/s\" 1.0 0.01 0.2 100. 1000. 0.01",
-            "collntype     \"\"      1.0 1.0 1.0 4.0 4.0 -0.01",
-            "acxmodel      \"\"      8.0 1.0 1.0 16.0 16.0 -0.01",
-            "recombtype    \"\"      1.0 1.0 1.0 2.0 2.0 -0.01",
+            "$collntype              1",
+            "$acxmodel               8",
+            "$recombtype             1",
             "Hefrac        \"\"      0.09 0.0 0.0 1.0 1.0 -0.01",
-            "abund         \"\"      1.0 0.0 0.0 10.0 10.0 0.01")
+            "abund         \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
+            "*redshift     \"\"      0.0")
 
 vacx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
              "collnpar    \"kev/u,km/s\" 1.0 0.01 0.2 100. 1000. 0.01",
-             "collntype     \"\"      1.0 1.0 1.0 4.0 4.0 -0.01",
-             "acxmodel      \"\"      8.0 1.0 1.0 16.0 16.0 -0.01",
-             "recombtype    \"\"      1.0 1.0 1.0 2.0 2.0 -0.01",
+             "$collntype              1",
+             "$acxmodel               8",
+             "$recombtype             1",
              "Hefrac        \"\"      0.09 0.0 0.0 1.0 1.0 -0.01",
              "H             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
              "He            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
@@ -45,14 +46,14 @@ vacx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
              "Ar            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
              "Ca            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
              "Fe            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
-             "Ni            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01")
-
+             "Ni            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+             "*redshift     \"\"      0.0")
 
 vvacx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
               "collnpar    \"kev/u,km/s\" 1.0 0.01 0.2 100. 1000. 0.01",
-              "collntype     \"\"      1.0 1.0 1.0 4.0 4.0 -0.01",
-              "acxmodel      \"\"      8.0 1.0 1.0 16.0 16.0 -0.01",
-              "recombtype    \"\"      1.0 1.0 1.0 2.0 2.0 -0.01",
+              "$collntype              1",
+              "$acxmodel               8",
+              "$recombtype             1",
               "Hefrac        \"\"      0.09 0.0 0.0 1.0 1.0 -0.01",
               "H             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
               "He            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
@@ -80,7 +81,8 @@ vvacx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
               "Cr            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
               "Mn            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
               "Fe            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
-              "Ni            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01")
+              "Ni            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+              "*redshift     \"\"      0.0")
 
 def acx2(engs, params, flux):
 
@@ -129,8 +131,11 @@ def acx2(engs, params, flux):
                                   Hesigmafile,\
                                   elements = numpy.array(elements))
 
-  # check energies
-  acx2_acxmodelobject.set_ebins(ebins)
+  # get redshift
+  redshift = float(params[7])
+
+  # set energy bins, accounting for redshift
+  acx2_acxmodelobject.set_ebins(ebins*(1.0+redshift))
 
   # check temperature
   acx2_acxmodelobject.set_temperature(params[0])
@@ -164,8 +169,23 @@ def acx2(engs, params, flux):
   # get the spectrum
   spec = acx2_acxmodelobject.calc_spectrum(params[1])
 
+  # Create a normalization correction factor based on velocity
+  if cp==1:
+    # convert from center of mass energy to center of mass velocity
+    cv = numpy.sqrt(4786031.3*params[1]/25.)
+  elif cp == 2:
+    # already center of mass velocity
+    cv = params[1]
+  elif cp == 3:
+    # convert from donor velocity (assume donor is H, recombining ion is Carbon-12)
+    # c.o.m. vel = (m1v1+m2v2)/(m1+m2)
+    cv = 1.0 * params[1]/(1.0+12.0)
+  elif cp == 4:
+    # convert from recombining ion velocity (assume donor is H, reccombining ion is Carbon-12)
+    cv = 12.0 * params[1]/(1.0+12.0)
+
   # return the flux.
-  flux[:] = spec*1e10
+  flux[:] = spec*1e10/cv
 
 
 def vacx2(engs, params, flux):
@@ -215,8 +235,11 @@ def vacx2(engs, params, flux):
                                   Hesigmafile,\
                                   elements = elements)
 
-  # check energies
-  acx2_acxmodelobject.set_ebins(ebins)
+  # get redshift
+  redshift = float(params[21])
+
+  # set energy bins, accounting for redshift
+  acx2_acxmodelobject.set_ebins(ebins*(1.0+redshift))
 
   # check temperature
   acx2_acxmodelobject.set_temperature(params[0])
@@ -248,8 +271,24 @@ def vacx2(engs, params, flux):
   # get the spectrum
   spec = acx2_acxmodelobject.calc_spectrum(params[1])
 
+
+  # Create a normalization correction factor based on velocity
+  if cp==1:
+    # convert from center of mass energy to center of mass velocity
+    cv = numpy.sqrt(4786031.3*params[1]/25.)
+  elif cp == 2:
+    # already center of mass velocity
+    cv = params[1]
+  elif cp == 3:
+    # convert from donor velocity (assume donor is H, recombining ion is Carbon-12)
+    # c.o.m. vel = (m1v1+m2v2)/(m1+m2)
+    cv = 1.0 * params[1]/(1.0+12.0)
+  elif cp == 4:
+    # convert from recombining ion velocity (assume donor is H, reccombining ion is Carbon-12)
+    cv = 12.0 * params[1]/(1.0+12.0)
+
   # return the flux.
-  flux[:] = spec*1e10
+  flux[:] = spec*1e10/cv
 
 
 
@@ -314,8 +353,11 @@ def vvacx2(engs, params, flux):
 
 
 
-  # check energies
-  acx2_acxmodelobject.set_ebins(ebins)
+  # get redshift
+  redshift = float(params[34])
+
+  # set energy bins, accounting for redshift
+  acx2_acxmodelobject.set_ebins(ebins*(1.0+redshift))
 
   # check temperature
   acx2_acxmodelobject.set_temperature(params[0])
@@ -349,9 +391,23 @@ def vvacx2(engs, params, flux):
   # get the spectrum
   spec = acx2_acxmodelobject.calc_spectrum(params[1])
 
-  # return the flux.
-  flux[:] = spec*1e10
+  # Create a normalization correction factor based on velocity
+  if cp==1:
+    # convert from center of mass energy to center of mass velocity
+    cv = numpy.sqrt(4786031.3*params[1]/25.)
+  elif cp == 2:
+    # already center of mass velocity
+    cv = params[1]
+  elif cp == 3:
+    # convert from donor velocity (assume donor is H, recombining ion is Carbon-12)
+    # c.o.m. vel = (m1v1+m2v2)/(m1+m2)
+    cv = 1.0 * params[1]/(1.0+12.0)
+  elif cp == 4:
+    # convert from recombining ion velocity (assume donor is H, reccombining ion is Carbon-12)
+    cv = 12.0 * params[1]/(1.0+12.0)
 
+  # return the flux.
+  flux[:] = spec*1e10/cv
 
 
 # this is how to import the models into pyxspec.
