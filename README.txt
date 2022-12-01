@@ -257,4 +257,9 @@ Added redshift to parameters.
 
 Converted XSPEC interface collntype, acxmodel and recombtype into integer switches
 
+1.1.1
+December 1st 2022
+Added extra option, 'calc_line_emissivity', which returns the emissivity of a specific transition due to CX. This can also be accessed during XSPEC sessions.
+Put more examples in the new "examples" directory
+
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
