@@ -429,7 +429,7 @@ class ACXModel():
       donor.set_abund(abundvec, elements=elements)
 
 
-  def calc_line_emissivity(self, collvalue, Z, z1, up, lo):
+  def calc_line_emissivity(self,  Z, z1, up, lo, collvalue=None):
     """
     Calculate the spectrum for all the donors, sum.
 
@@ -474,7 +474,7 @@ class ACXModel():
     #else:
     for donor in self.DonorList:
 
-      lineemiss=  donor.calc_line_emissivity(collvalue, Z, z1, up, lo)
+      lineemiss=  donor.calc_line_emissivity(Z, z1, up, lo, collvalue=collvalue)
       ret['Lambda'] = lineemiss['Lambda']
       ret['Epsilon']+=lineemiss['Epsilon']*donor.donorAbund
 
@@ -958,7 +958,7 @@ class ACXDonorModel():
 
     return self.emiss
 
-  def calc_line_emissivity(self, collvalue, Z, z1_in, up, lo):
+  def calc_line_emissivity(self, Z, z1_in, up, lo, collvalue=None):
     """
     Calculate the emissivity of a specific line.
 
@@ -980,6 +980,9 @@ class ACXDonorModel():
     ret : array(float)
       The spectrum, in ph cm^3 s-1 bin-1
     """
+
+    if collvalue is not None:
+      self.set_collisionparam(collvalue)
 
     emissivity = 0.0 # default number
     z1_ion = z1_in +1 # If you want a specific line, say He-like 7 to 1, you need

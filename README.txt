@@ -262,4 +262,8 @@ December 1st 2022
 Added extra option, 'calc_line_emissivity', which returns the emissivity of a specific transition due to CX. This can also be accessed during XSPEC sessions.
 Put more examples in the new "examples" directory
 
+1.1.2
+December 2nd 2022
+Bugfix to 'calc_line_emissivity', updates to examples.
+
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
