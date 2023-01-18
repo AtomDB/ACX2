@@ -266,4 +266,10 @@ Put more examples in the new "examples" directory
 December 2nd 2022
 Bugfix to 'calc_line_emissivity', updates to examples.
 
+1.1.3
+January 18th 2023
+Bugfix to 'axc2_xspec' interface: vacx and vvacx had incorrect parameter indexes
+
+
+
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html

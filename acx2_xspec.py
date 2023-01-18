@@ -236,7 +236,7 @@ def vacx2(engs, params, flux):
                                   elements = elements)
 
   # get redshift
-  redshift = float(params[21])
+  redshift = float(params[20])
 
   # set energy bins, accounting for redshift
   acx2_acxmodelobject.set_ebins(ebins*(1.0+redshift))
@@ -354,7 +354,7 @@ def vvacx2(engs, params, flux):
 
 
   # get redshift
-  redshift = float(params[34])
+  redshift = float(params[33])
 
   # set energy bins, accounting for redshift
   acx2_acxmodelobject.set_ebins(ebins*(1.0+redshift))
