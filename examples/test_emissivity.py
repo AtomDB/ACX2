@@ -17,7 +17,7 @@ fig.show()
 ax = fig.add_subplot(111)
 
 # declare the modelobject
-acx2_acxmodelobject = acx2.ACXModel()
+a = acx2.ACXModel()
 
 # I'm just using oxygen for speed
 elements = [8]
@@ -28,35 +28,38 @@ wvbins = numpy.linspace(19,26,71)
 # convert to energy bins
 ebins = 12.398425/wvbins[::-1]
 # set the energy bins                              
-acx2_acxmodelobject.set_ebins(ebins)
+a.set_ebins(ebins)
 
 # add the H and He donors
-acx2_acxmodelobject.add_donor('H', \
+a.add_donor('H', \
                               Hlinefile, \
                               Hcontfile, \
                               Hsigmafile,\
                               elements = numpy.array(elements))
-acx2_acxmodelobject.add_donor('He', \
+a.add_donor('He', \
                               Helinefile, \
                               Hecontfile, \
                               Hesigmafile,\
                               elements = numpy.array(elements))
                               
 # set fallback ACX model and the recombination type (single)
-acx2_acxmodelobject.set_acxmodel(8)
-acx2_acxmodelobject.set_recombtype(1)
+a.set_acxmodel(8)
+a.set_recombtype(1)
 
 # set relative abundance of H and He donors
-acx2_acxmodelobject.set_donorabund(['H','He'], [0.9, 0.1])
+a.set_donorabund(['H','He'], [0.9, 0.1])
 
 # set temperature for ionization balance
-acx2_acxmodelobject.set_temperature(0.7)
+a.set_temperature(0.4)
 
 # set collision parameter to be energy per unit mass
-acx2_acxmodelobject.set_collisiontype(1, 'kev/amu')
+a.set_collisiontype(1, 'kev/amu')
+
+# turn off everything by oxygen
+a.set_abund([0,0,0,0,1,0,0,0,0,0,0,0,0,0])
 
 # return an entire spectrum
-s = acx2_acxmodelobject.calc_spectrum(100)
+s = a.calc_spectrum(100)
 
 # plot this
 ax.plot(ebins, numpy.append(s[0], s), drawstyle='steps')
@@ -65,7 +68,7 @@ pylab.draw()
 # Get the emissivity of the 4 lines in the He-like O triplet
 out = []
 for up in [2, 5,6,7]:
-  out.append(acx2_acxmodelobject.calc_line_emissivity(100,8,7,up,1))
+  out.append(a.calc_line_emissivity(8,7,up,1, collvalue=100))
 
 # print out the emissivities
 for o in out:

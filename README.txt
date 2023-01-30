@@ -34,7 +34,6 @@ There are several useful flags that can be provided to this call, depending on y
 Usage
 =====
 
-
 Each model in ACX2 can have an arbitrary set of donors. By default for the XSPEC model these are neutral H and He, but others may be selected. Additional input files will be required for these - please contact the project via the AtomDB or GitHub pages to make or discuss requests.
 
 ----------
@@ -102,12 +101,12 @@ To load the ACX2 model into XSPEC, acx2_xspec module contains what you need. Fro
 Once this is done, the data will load.
 
 
-Three different models are loaded:
+Six different models are loaded:
 
 - acx2 : Emission from CX with the 14 main elements. Abundance is tied between all elements (so there is only 1 abundance keyword). Analogous to the apec model.
 - vacx2 : Emission from CX with the 14 main elements. Abundance is free to vary between all the elements (though it starts frozen). Analagous to the vapec model.
 - vvacx2 : Emission from 27 elements, H through Ni excluding Co. Abundance is free to vary between all the elements.
-
+- bacx2, bvacx2 and bvvacx2 which are broadened version of these
 .. note::
   Note that in the acx and vacx cases, unlike in the apec and vapec models, the effective abundance of the minor recombining elements is 0, not solar. This speeds up calculation time and does not significantly effect the resulting emission.
 
@@ -147,9 +146,14 @@ Model parameters
 +--------------+-----------------------------------------------------------------------------------+
 | abund        | recombining elemental abundances. (given by individual element in vacx and vvacx) |
 +--------------+-----------------------------------------------------------------------------------+
+| Tbroadening  | If 1, thermally braoaden the lines. Temperature set by the temperature parameter  |
++--------------+-----------------------------------------------------------------------------------+
+| vbroadening  | velocity broadening (in km/s) to be applied to the lines                          |
++--------------+-----------------------------------------------------------------------------------+
 
 .. note::
-   The units for collision velocity in XSPEC are km/s, not cm/s as in the underlying ACX models. This is to keep the numbers closer to 1, which XSPEC likes.
+   The units for collision velocity in XSPEC are km/s, not cm/s as in the underlying ACX models. This is to keep the numbers closer to 1, which XSPEC likes. Tbroadening and bvroadening only appear in the bacx2, bvacx2 and bvvacx2 models.
+   
 
 ++++++++++++++++++++++++++
 Normalization of the model
@@ -270,6 +274,9 @@ Bugfix to 'calc_line_emissivity', updates to examples.
 January 18th 2023
 Bugfix to 'axc2_xspec' interface: vacx and vvacx had incorrect parameter indexes
 
+1.2.0
+January 27th 2023
+Added the broadened models, bacx2 bvacx2 bvvacx2.
 
 
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
