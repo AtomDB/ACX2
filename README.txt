@@ -49,7 +49,7 @@ The files for each donor are:
   - ``cont`` files: same as line files, but including continuum emission. True continuum in CX is entirely 2-photon emission from H-, He- and Be-like ions.
 
 .. note::
-  The emissivity data files have thousands of HDUs as currently assembled. Although these files read quickly in python, when opening in some programs (e.g. ``fv``) the load times can be upwards of 10 minutes. Rearranging these files to not cause this issue is a priority to fix.
+  The emissivity data files have thousands of HDUs as currently assembled. Although these files read quickly in python, when opening in some programs (e.g. ``fv``) the load times can be upwards of 10 minutes. **As of January 2024 this (version 2.1) this has been resolved.
 
 -------
 Classes
@@ -268,7 +268,14 @@ Bugfix to 'calc_line_emissivity', updates to examples.
 
 1.1.3
 January 18th 2023
-Bugfix to 'axc2_xspec' interface: vacx and vvacx had incorrect parameter indexes
+Bugfix to 'acx2_xspec' interface: vacx and vvacx had incorrect parameter indexes
+
+2.1.0
+January 8th 2024
+Version number incremented to sync data and code release file numbers
+Major update to add velocity and thermal broadening. Data files rearranged to enable faster processing.
+A big thank you to McKenna Blake for working on this project.
+
 
 
 

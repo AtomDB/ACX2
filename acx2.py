@@ -139,7 +139,7 @@ class ACXModel():
                 donor_contfile, \
                 donor_crosssectionfile,\
                 abundset='AG89',\
-                elements=list(range(1,31))):
+                elements=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,28]):
     """
     Add a donor to the ACX model (e.g. H$^{0+}$, He$^{0+}$)
 
@@ -355,7 +355,7 @@ class ACXModel():
     for donor in self.DonorList:
       donor.set_collisiontype(colltype, collunits=collunits)
 
-  def calc_spectrum(self, collvalue):
+  def calc_spectrum(self, collvalue, Tbroaden=0, vbroaden=0):
     """
     Calculate the spectrum for all the donors, sum.
 
@@ -374,7 +374,7 @@ class ACXModel():
     if DEBUG:
       ret = []
       for donor in self.DonorList:
-        ret.append(donor.calc_spectrum(collvalue))
+        ret.append(donor.calc_spectrum(collvalue, Tbroaden, vbroaden))
 
       return ret
     else:
@@ -382,9 +382,9 @@ class ACXModel():
       for donor in self.DonorList:
 
         if retset==True:
-          ret += donor.calc_spectrum(collvalue)*donor.donorAbund
+          ret += donor.calc_spectrum(collvalue, Tbroaden, vbroaden)*donor.donorAbund
         else:
-          ret = donor.calc_spectrum(collvalue)*donor.donorAbund
+          ret = donor.calc_spectrum(collvalue, Tbroaden, vbroaden)*donor.donorAbund
           retset=True
 
       return ret
@@ -468,7 +468,7 @@ class ACXModel():
 #    if DEBUG:
       #ret = []
       #for donor in self.DonorList:
-        #ret.append(donor.calc_spectrum(collvalue))
+        #ret.append(donor.calc_spectrum(collvalue, Tbroaden, vbroaden))
 
       #return ret
     #else:
@@ -870,7 +870,7 @@ class ACXDonorModel():
           self.spectra[Z][z1].set_ebins(self.ebins, ebins_checksum=self.ebins_checksum)
 
 
-  def calc_spectrum(self, collparam):
+  def calc_spectrum(self, collparam, Tbroaden, vbroaden):
     """
     Calculate the spectrum we want
 
@@ -945,14 +945,13 @@ class ACXDonorModel():
               if not Z in self.emiss_debug.keys():
                 self.emiss_debug[Z] = {}
 
-#              self.emiss_debug[Z][z1] = self.spectra[Z][z1].calc_spectrum(self.ebins, self.collenergy[Z], self.collvelocity[Z], self.linedata, self.contdata, self.acxmodel)
-              self.emiss_debug[Z][z1] = self.spectra[Z][z1].calc_spectrum(self.collenergy[Z], self.collvelocity[Z])
+              self.emiss_debug[Z][z1] = self.spectra[Z][z1].calc_spectrum(self.collenergy[Z], self.collvelocity[Z], Tbroaden, vbroaden)
 
               self.emiss +=  self.emiss_debug[Z][z1] * self.abund[Z] * ionf
 
             else:
 
-              self.emiss += self.spectra[Z][z1].calc_spectrum(self.collenergy[Z], self.collvelocity[Z]) *\
+              self.emiss += self.spectra[Z][z1].calc_spectrum(self.collenergy[Z], self.collvelocity[Z], Tbroaden, vbroaden) *\
                      self.abund[Z] * ionf
 
 
@@ -1041,8 +1040,8 @@ class ACXDonorModel():
               if not Z in self.emiss_debug.keys():
                 self.emiss_debug[Z] = {}
 
-#              self.emiss_debug[Z][z1] = self.spectra[Z][z1].calc_spectrum(self.ebins, self.collenergy[Z], self.collvelocity[Z], self.linedata, self.contdata, self.acxmodel)
-              self.emiss_debug[Z][z1] = self.spectra[Z][z1].calc_spectrum(self.collenergy[Z], self.collvelocity[Z])
+#              self.emiss_debug[Z][z1] = self.spectra[Z][z1].calc_spectrum(self.ebins, self.collenergy[Z], self.collvelocity[Z], self.linedata, self.contdata, self.acxmodel, Tbroaden, vbroaden)
+              self.emiss_debug[Z][z1] = self.spectra[Z][z1].calc_spectrum(self.collenergy[Z], self.collvelocity[Z], Tbroaden, vbroaden)
 
               self.emiss +=  self.emiss_debug[Z][z1] * self.abund[Z] * ionf
 
@@ -1372,6 +1371,70 @@ class CXIonSpectrum():
     self.acxmodel=acxmodel
 
 
+  #copy expand_E_grid into CXIonSpectrum
+  def expand_E_grid(self, eedges, Econt_in_full, cont_in_full):
+
+    """
+    Code to expand the compressed continuum onto a series of bins.
+
+    Parameters
+    ----------
+    eedges : float(array)
+      The bin edges for the spectrum to be calculated on, in units of keV
+    Econt_in_full: float(array)
+      The compressed continuum energies (keV)
+    cont_in_full: float(array)
+      The compressed continuum emissivities (ph cm3 s-1 keV-1)
+
+    Returns
+    -------
+    float(array)
+      len(bins)-1 array of continuum emission, in units of \
+      photons cm^3 s^-1 bin^-1
+    """
+
+  #  History
+  #  -------
+  #  Version 0.1 - initial release
+  #    Adam Foster July 17th 2015
+
+    import scipy.integrate
+    cont_in = cont_in_full
+    Econt_in = Econt_in_full
+    n = len(cont_in_full)
+
+    # Append desired bin edges to the end of this array
+    E_all = numpy.append(Econt_in, eedges)
+
+    # interpolate the continuum at these bin edges
+    cont_tmp = numpy.interp(eedges, Econt_in, cont_in)
+
+    # add continuum at bin edges to the end
+    C_all = numpy.append(cont_in, cont_tmp)
+
+    # get sorted indexes for energy
+    iord = numpy.argsort(E_all)
+
+    # reorder the arrays in energy order
+    E_all = E_all[iord]
+    C_all = C_all[iord]
+
+    # pull out the points which are from the output grid (iord > npoints)
+    ihi = numpy.where(iord>=n)[0]
+
+    # do cumulative sum integration
+    cum_cont = scipy.integrate.cumtrapz(C_all, E_all, initial=0)
+
+    # extract the cumulative sum at the output points
+    C_out = cum_cont[ihi]
+
+    # convert to flux per bin
+    cont = C_out[1:]-C_out[:-1]
+
+    return cont
+
+
+
 
 
 class CXIonSpectrum_ACX1(CXIonSpectrum):
@@ -1434,55 +1497,48 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
     self.ebins_checksum = "0" # store hash of ebins
     # find, and store, the relevant HDUs from the line and continuum datafiles.
 
-    self.linedataindexes={} # to store the location of all the HDU data
 
-
+    #find the hdu location for the matching Z and z1 for line and continuum
     i = numpy.where((linedata[1].data['Z'] == self.Z) &\
                     (linedata[1].data['z1'] == self.z1))[0]
-
-
-    nlist = pyatomdb.util.unique(linedata[1].data['n'][i])
-    nlist.sort()
-    for n in nlist:
-       self.linedataindexes[n] = {}
-
-       ii = numpy.where((linedata[1].data['Z'] == self.Z) &\
-                        (linedata[1].data['z1'] == self.z1) &\
-                        (linedata[1].data['n'] == n))[0]
-       if len(ii) > 0:
-         llist = pyatomdb.util.unique(linedata[1].data['l'][ii])
-         for l in llist:
-           self.linedataindexes[n][l] = numpy.where((linedata[1].data['Z'] == self.Z) &\
-                        (linedata[1].data['z1'] == self.z1) &\
-                        (linedata[1].data['n'] == n) &\
-                        (linedata[1].data['l'] == l))[0][0]+2
-
-
-
-    self.contdataindexes={} # to store the location of all the HDU data
-
+    
+    if len(i) > 0:
+      self.ionlinedata = linedata[i[0]+2].data 
+    else:
+      self.ionlinedata = numpy.zeros(0, dtype = linedata[3].data.dtype)
+       
+    
 
     i = numpy.where((contdata[1].data['Z'] == self.Z) &\
                     (contdata[1].data['z1'] == self.z1))[0]
+    
+    if len(i) > 0:
+      self.ioncontdata = contdata[i[0]+2].data
 
+    #create arrays to hold the n l s values
+      self.n = numpy.zeros(len(self.ioncontdata))
+      self.l = numpy.zeros(len(self.ioncontdata))
+      self.s = numpy.zeros(len(self.ioncontdata))
 
-    nlist = pyatomdb.util.unique(contdata[1].data['n'][i])
-    nlist.sort()
-    for n in nlist:
-       self.contdataindexes[n] = {}
+    #find the n l s values from the header and write to arrays
+      for j,item in enumerate(self.ioncontdata): 
+         headstr = "CONT_*"
+         headstr = headstr.replace("*", str(j)) 
+         nlsstr = contdata[i[0]+2].header[headstr] 
+         nlslist = nlsstr.replace('n',' ').replace('l',' ').replace('s',' ').split() 
 
-       ii = numpy.where((contdata[1].data['Z'] == self.Z) &\
-                        (contdata[1].data['z1'] == self.z1) &\
-                        (contdata[1].data['n'] == n))[0]
-       if len(ii) > 0:
-         llist = pyatomdb.util.unique(contdata[1].data['l'][ii])
-         for l in llist:
-           self.contdataindexes[n][l] = numpy.where((contdata[1].data['Z'] == self.Z) &\
-                        (contdata[1].data['z1'] == self.z1) &\
-                        (contdata[1].data['n'] == n) &\
-                        (contdata[1].data['l'] == l))[0][0]+2
+         self.n[j] = nlslist[0] 
+         self.l[j] = nlslist[1]
+         self.s[j] = nlslist[2]
 
-    self.linedata = linedata
+    else:
+      self.ioncontdata = cocodata = numpy.zeros(0,dtype=pyatomdb.apec.generate_datatypes('continuum', ncontinuum=0, npseudo=0))
+      self.n = numpy.zeros(0)
+      self.l = numpy.zeros(0)
+      self.s = numpy.zeros(0)
+      
+    #to store the location of all the HDU data
+    self.linedata = linedata 
     self.contdata = contdata
 
     self.spectra ={}
@@ -1531,8 +1587,8 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
 #    """
 #    self.set_acxmodel=acxmodel
 
-#  def calc_spectrum(self, ebins, collenergy, collvelocity, linedata, contdata, acxmodel):
-  def calc_spectrum(self, collenergy, collvelocity):
+#  def calc_spectrum(self, ebins, collenergy, collvelocity, linedata, contdata, acxmodel, Tbroaden, vbroaden):
+  def calc_spectrum(self, collenergy, collvelocity, Tbroaden, vbroaden):
     """
     Calculate the spectrum of the data
 
@@ -1594,34 +1650,141 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
         # need to do just 1 n shell, the closest.
       n = [int(numpy.round(nprime))]
       nfrac=[1.0]
-
     else:
       n = [int(numpy.floor(nprime)), int(numpy.ceil(nprime))]
       nfrac = [1-(nprime%1), nprime%1]
 
-    emissivity = numpy.zeros(len(self.ebins)-1, dtype=float)
+    #create array to hold nfrac in same slot as choosen n l s
+    capture_frac = numpy.zeros(len(self.n), dtype = float)
+    
+    for b in range(len(n)): 
+      for k,item in enumerate(self.n): 
+        if self.n[k] == n[b] and self.l[k] == l:
+          capture_frac[k] = nfrac[b] 
 
-    for inn, nn in enumerate(n):
-      if not nn in self.spectra.keys():
-        self.spectra[nn] = {}
-      if not l in self.spectra[nn].keys():
+    #for each shell, multiplies the capture_frac with the emission, and sums the value. total emissivity
+#    t2 = time.time()
+#    print("  Time spent making capture_frac: %.3f"%(t2-t1))
+#    print(capture_frac.shape)
+#    print(self.ionlinedata['Epsilon'].shape)
+    
+    if len(capture_frac)==0:
+      new_epsilon = numpy.zeros(len(self.ionlinedata))
+    
+    else:
+      new_epsilon = numpy.sum(self.ionlinedata['Epsilon']*capture_frac,1)
+#      print("multi", self.ionlinedata['Epsilon']*capture_frac)
+#      print("NE", new_epsilon[:10])
+#      print("CF", capture_frac)
+#      print("EPS", self.ionlinedata['Epsilon'][:10])
+#      zzz=input()
+      
+#    new_epsilon = numpy.zeros(len(self.ionlinedata)) 
+#    for iline,item in enumerate(self.ionlinedata):
+#      new_epsilon[iline] = numpy.sum(capture_frac * self.ionlinedata['Epsilon'][iline,:])
+#    t0 = time.time()
+#    print("  Time spent making new_epsilon: %.3f"%(t0-t2))
+
+    #create array to return spectrum
+    
+
+    #######line broadening
+    self.broaden_limit = 1e-30 
+    self.broaden_object = _Gaussian_CDF() 
+    spec = numpy.zeros(len(self.ebins)-1, dtype=float) 
+#    print("Tbroaden:", Tbroaden, ', vbroaden:', vbroaden)
+
+#    t1 = time.time()
+#    print("  Time spent preppins sums: %.3f"%(t1-t0))
+    if ((Tbroaden <= 0.0) & \
+          (vbroaden <=0.0)): 
+       
+      if len(self.ionlinedata) > 0:
+        #turn line wavelengths into energies
+        en = pyatomdb.const.HC_IN_KEV_A/self.ionlinedata['Lambda']
+        #puts lines into the right spectral bins using epsilon array
+        a,b= numpy.histogram(en, bins = self.ebins, weights = new_epsilon) #new_epsilon
+        #add the line emission per bin to the spectrum
+        spec += a
+
+    elif len(self.ionlinedata) > 0:
+
+      en = pyatomdb.const.HC_IN_KEV_A/self.ionlinedata['Lambda'] 
+      ind = new_epsilon>self.broaden_limit  
+      nonind = ~ind
+
+      # calculate the widths of the strong lines
+      llist = self.ionlinedata[ind]   
+
+      # get a raw dictionary of masses in amu
+      masslist = pyatomdb.atomic.Z_to_mass(1,raw=True)
+
+      #assign values of temperature and velocity broadening
+      T = Tbroaden
+      Tb = pyatomdb.util.convert_temp(T, 'K','keV')*pyatomdb.const.ERG_KEV/(masslist[llist['Element']]*1e3*pyatomdb.const.AMUKG)
+
+      if vbroaden <0:
+        vbroaden = 0.0
+        vb=0.0
+      else:
+        vb = (vbroaden * 1e5)**2
+
+      wcoeff = numpy.sqrt(Tb+vb) / (pyatomdb.const.LIGHTSPEED*1e2)
+
+      elines = en[ind]
+      n_e = new_epsilon[ind]
+      width = wcoeff*elines
+
+      # Filter out lines more than NSIGMALIMIT sigma outside the range
+      NSIGMALIMIT=4
+      eplu = elines+NSIGMALIMIT*width
+      eneg = elines-NSIGMALIMIT*width
+      emax = max(self.ebins)
+      emin = min(self.ebins)
+      # identify all the good lines!
+      igood = numpy.where(((elines >= emin) & (eneg < emax))  |\
+                ((elines < emax) & (eplu > emin)))[0]
+
+      tmpspec = numpy.zeros(len(self.ebins))
+#      t0 = time.time()
+      for iline in igood:
+        #if width
+#        tmpspec += self.broaden_object.broaden(pyatomdb.const.HC_IN_KEV_A/llist['Lambda'][iline],\
+#                         width[iline],self.ebins)*new_epsilon[iline]
+        tmpspec += self.broaden_object.broaden(elines[iline],\
+                         width[iline],self.ebins)*n_e[iline]
+#      t1 = time.time()
+#      print("  Time spent broadening: %.3f"%(t1-t0))
+      spec=tmpspec[1:]-tmpspec[:-1]
+      s,z = numpy.histogram(en[nonind], \
+                            bins = self.ebins,\
+                            weights = new_epsilon[nonind])
+      spec+=s
+
+    #add to spectrum for the capture_frac n l s values
+    if len(self.ioncontdata) > 0: 
+      for p,item in enumerate(self.ioncontdata):
+        if capture_frac[p] > 0.0: 
+
+          if self.ioncontdata['N_cont'][p] > 2: 
+            ncont = self.ioncontdata['N_Cont'][p] #shorten array
+            spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Cont'][p][:ncont], self.ioncontdata['Continuum'][p][:ncont]) * (capture_frac[p])
+          if self.ioncontdata['N_Pseudo'][p] > 2:
+            npse = self.ioncontdata['N_Pseudo'][p] 
+            spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Pseudo'][p][:npse], self.ioncontdata['Pseudo'][p][:npse]) * (capture_frac[p])
 
 
-        try:
-          self.spectra[nn][l] = CXShellSpectrum(self.Z, self.z1, nn, l, \
-                                               self.linedata[self.linedataindexes[nn][l]].data,\
-                                               self.contdata[self.contdataindexes[nn][l]].data)
-        except KeyError:
-          # Case where there is no data for this Z, z1, nn, l
-          self.spectra[nn][l] = DummyCXShellSpectrum(self.Z, self.z1, nn, l)
+    spec = spec * UNIVERSAL_CX_CROSSSECTION   
+    self.ebins_checksum = self.ebins_checksum
+    self.spectrum = spec
+    self.spectrum_ready = True
 
-      emissivity += nfrac[inn] * self.spectra[nn][l].calc_spectrum(self.ebins, self.ebins_checksum) * UNIVERSAL_CX_CROSSSECTION
+    return self.spectrum * collvelocity
+      
 
-    return emissivity * collvelocity
-
-
+  
   def calc_line_emissivity(self, collenergy, collvelocity, up, lo):
-
+    
     emissivity = 0.0
     wv_out = 0.0
 #    +=====+===================+==================================+
@@ -1697,6 +1860,7 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
     return ret
 
 
+
 class CXIonSpectrum_NLS(CXIonSpectrum):
   """
   This is a class for nls resolved Kronos data
@@ -1748,46 +1912,37 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     self.ebins_checksum = "0" # store hash of ebins
     # find, and store, the relevant HDUs from the line and continuum datafiles.
 
-    self.linedataindexes={} # to store the location of all the HDU data
-    self.linedata=linedata # to store the location of all the HDU data
-
-
+    #find the hdu location for the matching Z and z1 for line and continuum
     i = numpy.where((linedata[1].data['Z'] == self.Z) &\
-                    (linedata[1].data['z1'] == self.z1))[0]
-
-
-    for ii in i:
-      n = linedata[1].data['n'][ii]
-      l = linedata[1].data['l'][ii]
-      s = linedata[1].data['S2p1'][ii]
-
-      if not n in self.linedataindexes.keys():
-        self.linedataindexes[n] ={}
-      if not l in self.linedataindexes[n].keys():
-        self.linedataindexes[n][l] ={}
-
-      self.linedataindexes[n][l][s] = ii+2
-
-
-    self.contdataindexes={} # to store the location of all the HDU data
-    self.contdata=contdata # to store the location of all the HDU data
-
+                    (linedata[1].data['z1'] == self.z1))[0][0]
+    
+    self.ionlinedata = linedata[i+2].data 
 
     i = numpy.where((contdata[1].data['Z'] == self.Z) &\
-                    (contdata[1].data['z1'] == self.z1))[0]
+                    (contdata[1].data['z1'] == self.z1))[0][0]
+    
+    self.ioncontdata = contdata[i+2].data
 
+    #find the n l s values from the header and write to arrays
+    self.n = numpy.zeros(len(self.ioncontdata)) 
+    self.l = numpy.zeros(len(self.ioncontdata))
+    self.s = numpy.zeros(len(self.ioncontdata))
 
-    for ii in i:
-      n = contdata[1].data['n'][ii]
-      l = contdata[1].data['l'][ii]
-      s = contdata[1].data['S2p1'][ii]
+    for j,item in enumerate(self.ioncontdata): 
 
-      if not n in self.contdataindexes.keys():
-        self.contdataindexes[n] ={}
-      if not l in self.contdataindexes[n].keys():
-        self.contdataindexes[n][l] ={}
+       headstr = "CONT_*"
+       headstr = headstr.replace("*", str(j))
+       nlsstr = contdata[i+2].header[headstr] 
+       nlslist = nlsstr.replace('n',' ').replace('l',' ').replace('s',' ').split()
 
-      self.contdataindexes[n][l][s] = ii+2
+       self.n[j] = nlslist[0] 
+       self.l[j] = nlslist[1]
+       self.s[j] = nlslist[2]
+
+    #to store the location of all the HDU data
+    self.linedata=linedata 
+    self.contdata=contdata 
+
 
     self.spectra ={}
     self.ebins=0.0
@@ -1795,10 +1950,7 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
 
 
 
-
-
-
-  def calc_spectrum(self, collenergy, collvelocity):
+  def calc_spectrum(self, collenergy, collvelocity, Tbroaden, vbroaden):
     """
     Calculate the spectrum of the data
 
@@ -1840,36 +1992,113 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     #emax = min(sigmadata['E_max'])
 #    print("NLS Spectrum calc")
 
-    emissivity = numpy.zeros(len(self.ebins)-1, dtype=float)
-#    ebinshash = hashlib.md5(self.ebins).hexdigest() # tracks for changes to ebins
-
-
-    for sig in self.crosssectiondata:
+    #create array that goes through the sigma files for the known distribution of n l s
+    Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
+    for sig in self.crosssectiondata: 
       Cout = loginterp(collenergy, sig['E'], sig['C'])
+      for b,item in enumerate(self.n):
+        if self.n[b] == sig['n'] and self.l[b] == sig['l'] and self.s[b] == sig['S2p1']:
+          Coutarraynl[b] = Cout
 
-      if Cout > 0:
+    #for every transition, multiplies the capture_frac with the emission, and sums the value. total emissivity
+#    new_epsilon = numpy.sum(Coutarraynl * self.ionlinedata['Epsilon'], 1)
+    if len(Coutarraynl)==0:
+      new_epsilon = numpy.zeros(len(self.ionlinedata))
+    
+    else:
+      new_epsilon = numpy.sum(self.ionlinedata['Epsilon']*Coutarraynl,1)
 
-        if not sig['n'] in self.spectra.keys():
-          self.spectra[sig['n']] = {}
-        if not sig['l'] in self.spectra[sig['n']].keys():
-          self.spectra[sig['n']][sig['l']] = {}
-        if not sig['S2p1'] in self.spectra[sig['n']][sig['l']].keys():
-          try:
-            self.spectra[sig['n']][sig['l']][sig['S2p1']] = \
-               CXShellSpectrum(self.Z, self.z1, sig['n'], sig['l'], \
-               self.linedata[self.linedataindexes[sig['n']][sig['l']][sig['S2p1']]].data,\
-               self.contdata[self.contdataindexes[sig['n']][sig['l']][sig['S2p1']]].data)
-          except KeyError:
-          # Case where there is no data for this Z, z1, nn, l
-            self.spectra[sig['n']][sig['l']][sig['S2p1']] = \
-               DummyCXShellSpectrum(self.Z, self.z1,sig['n'],sig['l'], s = sig['S2p1'])
+    #set up array to return spectrum
+    spec = numpy.zeros(len(self.ebins)-1, dtype=float)
 
-    #    print(Cout, self.spectra)
-        emissivity += Cout * self.spectra[sig['n']][sig['l']][sig['S2p1']].calc_spectrum(self.ebins, self.ebins_checksum)
+    #######line broadening
+    self.broaden_limit = 1e-20 
+    self.broaden_object = _Gaussian_CDF() 
+  
+    if ((Tbroaden <= 0.0) & \
+          (vbroaden <=0.0)): 
+        
+      if len(self.ionlinedata) > 0:
+        #turn line wavelengths into energies
+        en = pyatomdb.const.HC_IN_KEV_A/self.ionlinedata['Lambda']
+        #puts lines into the right spectral bins using epsilon array
+        a,b= numpy.histogram(en, bins = self.ebins, weights = new_epsilon)
+        #add the line emission per bin to the spectrum
+        spec += a
 
+    elif len(self.ionlinedata) > 0:
+ 
+      en = pyatomdb.const.HC_IN_KEV_A/self.ionlinedata['Lambda'] 
+      ind = new_epsilon>self.broaden_limit  
+      nonind = ~ind
 
-    # return multiplied by velocity
-    return emissivity * collvelocity
+      # calculate the widths of the strong lines
+      llist = self.ionlinedata[ind]   
+
+      # get a raw dictionary of masses in amu
+      masslist = pyatomdb.atomic.Z_to_mass(1,raw=True)
+
+      #assign values of temperature and velocity broadening
+      T = Tbroaden
+      Tb = pyatomdb.util.convert_temp(T, 'K','keV')*pyatomdb.const.ERG_KEV/(masslist[llist['Element']]*1e3*pyatomdb.const.AMUKG)
+
+      if vbroaden <0:
+        vbroaden = 0.0
+        vb=0.0
+      else:
+        vb = (vbroaden * 1e5)**2
+
+      wcoeff = numpy.sqrt(Tb+vb) / (pyatomdb.const.LIGHTSPEED*1e2)
+
+      elines = en[ind]
+      n_e = new_epsilon[ind]
+      width = wcoeff*elines
+
+      # Filter out lines more than NSIGMALIMIT sigma outside the range
+      NSIGMALIMIT=4
+      eplu = elines+NSIGMALIMIT*width
+      eneg = elines-NSIGMALIMIT*width
+      emax = max(self.ebins)
+      emin = min(self.ebins)
+      # identify all the good lines!
+
+      igood = numpy.where(((elines >= emin) & (eneg < emax))  |\
+                ((elines < emax) & (eplu > emin)))[0]
+
+      spec = numpy.zeros(len(self.ebins))
+
+      for iline in igood:
+        #if width
+#        spec += self.broaden_object.broaden(pyatomdb.const.HC_IN_KEV_A/llist['Lambda'][iline],\
+#                         width[iline],self.ebins)*new_epsilon[iline]
+        spec += self.broaden_object.broaden(elines[iline],\
+                         width[iline],self.ebins)*n_e[iline]
+
+      spec=spec[1:]-spec[:-1]
+
+      s,z = numpy.histogram(en[nonind], \
+                            bins = self.ebins,\
+                            weights = new_epsilon[nonind])
+      spec+=s
+    #######
+
+    #add to spectrum the continuum data for the Coutarraynl n l s values 
+    if len(self.ioncontdata) > 0: 
+      for p,item in enumerate(self.ioncontdata):
+        if Coutarraynl[p] > 0.0: 
+          if self.ioncontdata['N_cont'][p] > 2:
+            ncont = self.ioncontdata['N_Cont'][p] #shorten array 
+            spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Cont'][p][:ncont], self.ioncontdata['Continuum'][p][:ncont]) * (Coutarraynl[p])
+
+          if self.ioncontdata['N_Pseudo'][p] > 2:
+            npse = self.ioncontdata['N_Pseudo'][p]
+            spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Pseudo'][p][:npse], self.ioncontdata['Pseudo'][p][:npse]) * (Coutarraynl[p])
+ 
+    self.ebins_checksum = self.ebins_checksum
+    self.spectrum = spec
+    self.spectrum_ready = True
+
+    return self.spectrum * collvelocity 
 
 
   def calc_line_emissivity(self, collenergy, collvelocity, up, lo):
@@ -1992,70 +2221,48 @@ class CXIonSpectrum_N(CXIonSpectrum):
     self.receivermass = receivermass
     self.donormass = donormass
     self.acxmodel = acxmodel
+
     # set up some empty variables, to be fleshed out
     self.ebins_checksum = "0" # store hash of ebins
     # find, and store, the relevant HDUs from the line and continuum datafiles.
 
-    self.linedataindexes={} # to store the location of all the HDU data
-
-
+    #find the hdu location for the matching Z and z1 for line and continuum 
     i = numpy.where((linedata[1].data['Z'] == self.Z) &\
-                    (linedata[1].data['z1'] == self.z1))[0]
-
-
-    nlist = pyatomdb.util.unique(linedata[1].data['n'][i])
-    nlist.sort()
-    for n in nlist:
-       self.linedataindexes[n] = {}
-
-       ii = numpy.where((linedata[1].data['Z'] == self.Z) &\
-                        (linedata[1].data['z1'] == self.z1) &\
-                        (linedata[1].data['n'] == n))[0]
-       if len(ii) > 0:
-         llist = pyatomdb.util.unique(linedata[1].data['l'][ii])
-         for l in llist:
-           self.linedataindexes[n][l] = numpy.where((linedata[1].data['Z'] == self.Z) &\
-                        (linedata[1].data['z1'] == self.z1) &\
-                        (linedata[1].data['n'] == n) &\
-                        (linedata[1].data['l'] == l))[0][0]+2
-
-
-
-    self.contdataindexes={} # to store the location of all the HDU data
-
+                    (linedata[1].data['z1'] == self.z1))[0][0]  
+    
+    self.ionlinedata = linedata[i+2].data 
 
     i = numpy.where((contdata[1].data['Z'] == self.Z) &\
-                    (contdata[1].data['z1'] == self.z1))[0]
+                    (contdata[1].data['z1'] == self.z1))[0][0]
+    
+    self.ioncontdata = contdata[i+2].data
 
+    #find the n l s values from the header and write to arrays
+    self.n = numpy.zeros(len(self.ioncontdata)) 
+    self.l = numpy.zeros(len(self.ioncontdata))
+    self.s = numpy.zeros(len(self.ioncontdata))
+  
+    for j,item in enumerate(self.ioncontdata): 
+       headstr = "CONT_*"
+       headstr = headstr.replace("*", str(j)) 
+       nlsstr = contdata[i+2].header[headstr] 
+       nlslist = nlsstr.replace('n',' ').replace('l',' ').replace('s',' ').split() 
 
-    nlist = pyatomdb.util.unique(contdata[1].data['n'][i])
-    nlist.sort()
-    for n in nlist:
-       self.contdataindexes[n] = {}
+       self.n[j] = nlslist[0]
+       self.l[j] = nlslist[1]
+       self.s[j] = nlslist[2]
 
-       ii = numpy.where((contdata[1].data['Z'] == self.Z) &\
-                        (contdata[1].data['z1'] == self.z1) &\
-                        (contdata[1].data['n'] == n))[0]
-       if len(ii) > 0:
-         llist = pyatomdb.util.unique(contdata[1].data['l'][ii])
-         for l in llist:
-           self.contdataindexes[n][l] = numpy.where((contdata[1].data['Z'] == self.Z) &\
-                        (contdata[1].data['z1'] == self.z1) &\
-                        (contdata[1].data['n'] == n) &\
-                        (contdata[1].data['l'] == l))[0][0]+2
-
+    #to store the location of all the HDU data
     self.linedata = linedata
     self.contdata = contdata
 
     self.spectra ={}
-
-
     self.ebins=0.0
     self.ebins_checksum="0"
 
 
 
-  def calc_spectrum(self, collenergy, collvelocity):
+  def calc_spectrum(self, collenergy, collvelocity, Tbroaden, vbroaden):
     """
     Calculate the spectrum of the data
 
@@ -2097,39 +2304,119 @@ class CXIonSpectrum_N(CXIonSpectrum):
     #emax = min(sigmadata['E_max'])
 #    print("N Spectrum calc")
 
-    emissivity = numpy.zeros(len(self.ebins)-1, dtype=float)
-#    ebinshash = hashlib.md5(self.ebins).hexdigest() # tracks for changes to ebins
 
-    # get the l
     l = -1 * (self.acxmodel%4)
     # if l = -4, this returns 0. Correct
     if l==0: l=-4
 
-
-    for sig in self.crosssectiondata:
-
+    #create array that goes through the sigma files for the known distribution of n with l from above
+    Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
+    for sig in self.crosssectiondata: 
       Cout = loginterp(collenergy, sig['E'], sig['C'])
+      for b,item in enumerate(self.n):
+        if self.n[b] == sig['n'] and self.l[b] == l: 
+          Coutarraynl[b] = Cout
 
-      if Cout > 0:
+    #for each shell, multiplies the capture_frac with the emission, and sums the value. total emissivity
+#    new_epsilon = numpy.sum(Coutarraynl * self.ionlinedata['Epsilon'], 1)
+    if len(Coutarraynl)==0:
+      new_epsilon = numpy.zeros(len(self.ionlinedata))
+    
+    else:
+      new_epsilon = numpy.sum(self.ionlinedata['Epsilon']*Coutarraynl,1)
+#    new_epsilon = numpy.zeros(len(self.ionlinedata)) 
+#    for iline,item in enumerate(self.ionlinedata):
+#      new_epsilon[iline] = numpy.sum(Coutarraynl * self.ionlinedata['Epsilon'][iline,:])
 
-        if not sig['n'] in self.spectra.keys():
-          self.spectra[sig['n']] = {}
-        if not l in self.spectra[sig['n']].keys():
-          try:
-            self.spectra[sig['n']][l] =\
-               CXShellSpectrum(self.Z, self.z1, sig['n'], l, \
-               self.linedata[self.linedataindexes[sig['n']][l]].data,\
-               self.contdata[self.contdataindexes[sig['n']][l]].data)
-          except KeyError:
-          # Case where there is no data for this Z, z1, nn, l
-            self.spectra[sig['n']][l] = \
-               DummyCXShellSpectrum(self.Z, self.z1,sig['n'],l)
+    #set up array to return spectrum
+    spec = numpy.zeros(len(self.ebins)-1, dtype=float)
 
-        emissivity += Cout * self.spectra[sig['n']][l].calc_spectrum(self.ebins, self.ebins_checksum)
+    #######line broadening
+    self.broaden_limit = 1e-20 
+    self.broaden_object = _Gaussian_CDF() 
+  
+    if ((Tbroaden <= 0.0) & \
+          (vbroaden <=0.0)): 
+        
+      if len(self.ionlinedata) > 0:
+        #turn line wavelengths into energies
+        en = pyatomdb.const.HC_IN_KEV_A/self.ionlinedata['Lambda']
+        #puts lines into the right spectral bins using epsilon array
+        a,b= numpy.histogram(en, bins = self.ebins, weights = new_epsilon)
+        #add the line emission per bin to the spectrum
+        spec += a
 
+    elif len(self.ionlinedata) > 0:
+ 
+      en = pyatomdb.const.HC_IN_KEV_A/self.ionlinedata['Lambda'] 
+      ind = new_epsilon>self.broaden_limit  
+      nonind = ~ind
 
-    # return multiplied by velocity
-    return emissivity * collvelocity
+      # calculate the widths of the strong lines
+      llist = self.ionlinedata[ind]   
+
+      # get a raw dictionary of masses in amu
+      masslist = pyatomdb.atomic.Z_to_mass(1,raw=True)
+
+      #assign values of temperature and velocity broadening
+      T = Tbroaden
+      Tb = pyatomdb.util.convert_temp(T, 'K','keV')*pyatomdb.const.ERG_KEV/(masslist[llist['Element']]*1e3*pyatomdb.const.AMUKG)
+
+      if vbroaden <0:
+        vbroaden = 0.0
+        vb=0.0
+      else:
+        vb = (vbroaden * 1e5)**2
+
+      wcoeff = numpy.sqrt(Tb+vb) / (pyatomdb.const.LIGHTSPEED*1e2)
+
+      elines = en[ind]
+      n_e = new_epsilon[ind]
+      width = wcoeff*elines
+
+      # Filter out lines more than NSIGMALIMIT sigma outside the range
+      NSIGMALIMIT=4
+      eplu = elines+NSIGMALIMIT*width
+      eneg = elines-NSIGMALIMIT*width
+      emax = max(self.ebins)
+      emin = min(self.ebins)
+      # identify all the good lines!
+      igood = numpy.where(((elines >= emin) & (eneg < emax))  |\
+                ((elines < emax) & (eplu > emin)))[0]
+
+      spec = numpy.zeros(len(self.ebins))
+
+      for iline in igood:
+        #if width
+        spec += self.broaden_object.broaden(elines[iline],\
+                         width[iline],self.ebins)*n_e[iline]
+      spec=spec[1:]-spec[:-1]
+      s,z = numpy.histogram(en[nonind], \
+                            bins = self.ebins,\
+                            weights = new_epsilon[nonind])
+      spec+=s
+
+      
+    #######
+
+    #add to spectrum for the Coutarraynl n l s values
+    if len(self.ioncontdata) > 0: 
+      for p,item in enumerate(self.ioncontdata): 
+        if Coutarraynl[p] > 0.0: 
+          if self.ioncontdata['N_cont'][p] > 2: 
+            ncont = self.ioncontdata['N_Cont'][p] #shorten array
+            spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Cont'][p][:ncont], self.ioncontdata['Continuum'][p][:ncont]) * (Coutarraynl[p])
+
+          if self.ioncontdata['N_Pseudo'][p] > 2:
+            npse = self.ioncontdata['N_Pseudo'][p] 
+            spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Pseudo'][p][:npse], self.ioncontdata['Pseudo'][p][:npse]) * (Coutarraynl[p])
+
+    self.ebins_checksum = self.ebins_checksum
+    self.spectrum = spec
+    self.spectrum_ready = True
+
+    return self.spectrum * collvelocity     
+
 
   def calc_line_emissivity(self, collenergy, collvelocity, up, lo):
 
@@ -2314,7 +2601,7 @@ to recombination into this shell.
 
 
 
-  def calc_spectrum(self, ebins, ebins_checksum):
+  def calc_spectrum(self, ebins, ebins_checksum, Tbroaden, vbroaden):
     import scipy,scipy.integrate
 
     if self.ebins_checksum == ebins_checksum:
@@ -2423,7 +2710,7 @@ class DummyCXShellSpectrum():
     self.s = s
 
 
-  def calc_spectrum(self, ebins, ebins_checksum):
+  def calc_spectrum(self, ebins, ebins_checksum, Tbroaden, vbroaden):
     """
     Return zeros
 
@@ -2459,13 +2746,75 @@ class DummyCXShellSpectrum():
 
     pass
 
+
+
+class _Gaussian_CDF():
+  """
+  For fast interpolation, pre-calculate the CDF and interpolate it when
+  broadening lines
+
+  Parameters
+  ----------
+  None
+
+  Examples
+  --------
+
+  Create a CDF instance:
+
+  >>> s=_Gaussian_CDF()
+
+  Broaden a line on ebins grid, with centroid and width.
+
+  >>> cdf = a.broaden(centroid, width, ebins)
+
+  Convert to flux in each bin
+
+  >>> flux= cdf[1:]-cdf[:-1]
+
+
+  """
+  def __init__(self):
+    from scipy.stats import norm
+    self.x = numpy.linspace(-6,6,2400)
+    self.cdf = norm.cdf(self.x)
+    self.broadentype='Gaussian'
+
+  def broaden(self, centroid, width, ebins):
+    """
+    Broaden a line, return CDF
+
+    Parameters
+    ----------
+    centroid : float
+      The line energy (keV)
+    width : float
+      The sigma of the normal distribution, in keV
+    ebins : array(float)
+      Energy grid to return CDF on
+
+    Returns
+    -------
+    CDF : array(float)
+      cumulative flux distribution of linen at each bin edge.
+    """
+
+    # move the energy grid
+    etmp = (ebins-centroid)/width
+
+    # interpolate to get the appropriate CDF values
+    ret=numpy.interp(etmp, self.x, self.cdf)
+
+    return ret
+
+
+
+
 def test():
   # this is a test routine. Let's see what we can do!
 
   myacx = ACXModel()
 
-#  print('woo1')
-#  zzz=input()
   myacx.add_donor('H', \
                 'tmp_cxline2.fits', \
                 'tmp_cxcont.fits', \
@@ -2487,7 +2836,85 @@ def test():
   return myacx
 
 
+def download_acx_emissivity_files(adbroot=None, userid, version=None):
 
+  """
+  Download the AtomDB CX model emissivity files for AtomDB"
+
+  This code will go to the AtomDB FTP site and download the necessary files.
+  It will then unpack them into a directory adbroot. It will not
+  overwrite existing files with the same md5sum (to avoid pointless updates)
+  but it will not know this until it has downloaded and unzipped the main
+  file.
+
+  Parameters
+  ----------
+
+  adbroot : string
+    The location to install the data. Typically should match $ATOMDB
+  userid : string
+    An 8 digit ID number. Usually passed as a string, but integer
+    is also fine (provided it is all numbers)
+  version : string
+    The version string, including donors for the release, e.g. "2_1_0-h_he"
+
+  Returns
+  -------
+  None
+  """
+
+  import tarfile
+
+  # set up remote file name
+  fname = "acx2-v%s-data.tar.bz2"%(version)
+
+  if adbroot is None:
+    adbroot = os.environ.get('ATOMDB')
+    if adbroot is None:
+      print("Error: to automatically download and install AtomDB files, must have $ATOMDB environment variable set")
+
+  a=curl.Curl()
+  version=a.get('%s/releases/LATEST_ACX2'%(const.FTPPATH))[:-1].decode(encoding='ascii')
+  a.close()
+
+  # set up temporary directory to hold data
+
+  if adbroot[0] != '/':
+    # is a relative path
+    adbroot = "%s/%s"%(os.getcwd(), adbroot)
+
+  mkdir_p(adbroot)
+  if adbroot[-1]=='/':
+    tmpdir = adbroot+'installtmp'
+  else:
+    tmpdir = adbroot+'/installtmp'
+
+
+  print("making directory %s"%(tmpdir))
+  mkdir_p(tmpdir)
+
+  # get the files
+  urllib.request.urlcleanup()
+  fnameout = wget.download('%s/releases/%s'%(pyatomdb.const.FTPPATH,fname), out="%s/%s"%(tmpdir, fname))
+  # collect user statistics if allowed.
+  record_upload(fname)
+
+  #uncompress
+  print("")
+  print("Uncompressing ... ", end=' ')
+
+  tf = tarfile.open(name=fnameout, mode='r:bz2')
+  tf.extractall(path=tmpdir)
+  print("Uncompressed")
+  # copy the files
+  dirname = 'acx2_v%s-data'%(version)
+  for l in os.listdir('%s/%s'%(tmpdir, dirname)):
+    print("moving %s/%s/%s to %s/%s"%(tmpdir, dirname, l, adbroot, l))
+    shutil.move("%s/%s/%s"%(tmpdir, dirname, l), "%s/%s"%(adbroot, l))
+
+  print("...done")
+
+  shutil.rmtree(tmpdir)
 
 
 
