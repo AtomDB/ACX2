@@ -202,7 +202,7 @@ class ACXModel():
                                         abundset=abundset,\
                                         elements=elements))
     if self.ebins_set:
-      self.DonorList[-1].set_ebins(ebins)
+      self.DonorList[-1].set_ebins(self.ebins)
 
     if self.temperature_set:
       self.DonorList[-1].set_temperature(self.temperature)
@@ -1855,7 +1855,7 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
       new_epsilon = numpy.sum(self.ionlinedata['Epsilon']*capture_frac,1)
 
     i = numpy.where((self.ionlinedata['UpperLev'] == up) &
-                    (self.ionlinedata['LowerLev'] == lo))
+                    (self.ionlinedata['LowerLev'] == lo))[0]
     if len(i)==0:
       out_wv = 0.0
       emissivity = 0.0
@@ -2130,7 +2130,7 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
       new_epsilon = numpy.sum(self.ionlinedata['Epsilon']*Coutarraynl,1)
 
     i = numpy.where((self.ionlinedata['UpperLev'] == up) &
-                    (self.ionlinedata['LowerLev'] == lo))
+                    (self.ionlinedata['LowerLev'] == lo))[0]
     if len(i)==0:
       out_wv = 0.0
       emissivity = 0.0
@@ -2483,7 +2483,7 @@ class CXIonSpectrum_N(CXIonSpectrum):
 
 
     i = numpy.where((self.ionlinedata['UpperLev'] == up) &
-                    (self.ionlinedata['LowerLev'] == lo))
+                    (self.ionlinedata['LowerLev'] == lo))[0]
     if len(i)==0:
       out_wv = 0.0
       emissivity = 0.0
