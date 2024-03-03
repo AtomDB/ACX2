@@ -41,7 +41,7 @@ Each model in ACX2 can have an arbitrary set of donors. By default for the XSPEC
 Data Files
 ----------
 
-Each model requires a set of data files to be installed with it. As these files are large they cannot be exported through GitHub, and they should instead be downloaded from the AtomDB CX webpage, www.atomdb.org/CX.
+Each model requires a set of data files to be installed with it. As these files are large they cannot be exported through GitHub. These files will be downloaded automatically to your $ATOMDB folder on first opening the package.
 
 The files for each donor are:
   - ``sigma`` files: the cross sections for capture into each n, l and S (depending on the ion) from the Kronos database
@@ -87,7 +87,7 @@ To use the model in XSPEC, one can ignore the class details above. Unfortunately
 .. note::
   You will need to edit the acx2_xspec.py file:
   #. It may need to be moved into your path (depending on the data)
-  #. The data file locations are hardcoded, you will need to update them to reflect where you have installed the line, continuum and cross section files.
+  #. The data file locations are hardcoded to $ATOMDB, you will need to update them to reflect where you have installed the line, continuum and cross section files if you have put them somewhere else.
 
 
 To load the ACX2 model into XSPEC, acx2_xspec module contains what you need. From a python3 shell:
@@ -107,6 +107,7 @@ Three different models are loaded:
 - acx2 : Emission from CX with the 14 main elements. Abundance is tied between all elements (so there is only 1 abundance keyword). Analogous to the apec model.
 - vacx2 : Emission from CX with the 14 main elements. Abundance is free to vary between all the elements (though it starts frozen). Analagous to the vapec model.
 - vvacx2 : Emission from 27 elements, H through Ni excluding Co. Abundance is free to vary between all the elements.
+- acx2oneion
 
 .. note::
   Note that in the acx and vacx cases, unlike in the apec and vapec models, the effective abundance of the minor recombining elements is 0, not solar. This speeds up calculation time and does not significantly effect the resulting emission.
