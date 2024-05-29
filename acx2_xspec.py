@@ -193,7 +193,7 @@ def acx2(engs, params, flux):
 #  acx2_acxmodelobject.set_abund(abund)
   
   # get redshift
-  redshift = float(params[-1])
+  redshift = float(params[-2])
 
   # set energy bins, accounting for redshift
   acx2_acxmodelobject.set_ebins(ebins*(1.0+redshift))
