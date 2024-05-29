@@ -277,6 +277,10 @@ Version number incremented to sync data and code release file numbers
 Major update to add velocity and thermal broadening. Data files rearranged to enable faster processing.
 A big thank you to McKenna Blake for working on this project.
 
+2.1.1
+May 28th 2024
+Bugfix: acx2_xspec has mis-indexed the redshift, leading to incorrect energies. Thank you to Shuinai Zhang for identifying this mistake.
+
 
 
 
