@@ -181,12 +181,19 @@ the n=7 and 6 shells resepectively.
 | Value | n distribution    | l distribution                   |
 +=======+===================+==================================+
 |  1    | one n shell       | even distribution by  l.         |
++-------+-------------------+----------------------------------+
 |  2    | one n shell       | statistical distribution by l.   |
++-------+-------------------+----------------------------------+
 |  3    | one n shell       | Landau-Zener distribution by  l. |
++-------+-------------------+----------------------------------+
 |  4    | one n shell       | Separable distribution by l.     |
++-------+-------------------+----------------------------------+
 |  5    | weighted 2 shells | even distribution by  l.         |
++-------+-------------------+----------------------------------+
 |  6    | weighted 2 shells | statistical distribution by l.   |
++-------+-------------------+----------------------------------+
 |  7    | weighted 2 shells | Landau-Zener distribution by l.  |
++-------+-------------------+----------------------------------+
 |  8    | weighted 2 shells | Separable distribution by l.     |
 +-------+-------------------+----------------------------------+
 
@@ -204,9 +211,12 @@ weighting is statistical (so more is captured into the :math: `1s3p ^3P_2` state
 | Value        | l distribution                                                                                                 |
 +==============+================================================================================================================+
 | Even         | Weighted evenly between l shells                                                                               |
++--------------+----------------------------------------------------------------------------------------------------------------+
 | Statistical  | Weighted by the statistical weight of each level   .                                                           |
++--------------+----------------------------------------------------------------------------------------------------------------+
 | Landau-Zener | Weighted by the function :math:`W(l)={{l(l+1)(2l+1)\times(n-1)! \times (n-2)!}\over{ (n+l)! \times (n-l-1)!}}` |
-|Separable     | Weighted by the function :math:`W(l)={{(2l+1)}\over{Z}}\times \exp\Big[{{-l \times(l+1)}\over{z}}\Big]`        |
++--------------+----------------------------------------------------------------------------------------------------------------+
+| Separable    | Weighted by the function :math:`W(l)={{(2l+1)}\over{Z}}\times \exp\Big[{{-l \times(l+1)}\over{z}}\Big]`        |
 +--------------+----------------------------------------------------------------------------------------------------------------+
 
 
