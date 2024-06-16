@@ -205,7 +205,7 @@ Meaning of the l-shell distributions
 Note that all of these weighting schemes refer to the l distribution. For example, the
 realtive weighting of total capture into levels with the 3s, 3p or 3d
 configurations. Within all the levels sharing a configuration,
-weighting is statistical (so more is captured into the :math:`1s3p ^3P_2` state than the :math:`1s3p ^{3}P_0`.
+weighting is statistical (so 5 times more is captured into the :math:`1s3p ^3P_2` state than the :math:`1s3p ^{3}P_0)`.
 
 +--------------+----------------------------------------------------------------------------------------------------------------+
 | Value        | l distribution                                                                                                 |
@@ -214,7 +214,7 @@ weighting is statistical (so more is captured into the :math:`1s3p ^3P_2` state 
 +--------------+----------------------------------------------------------------------------------------------------------------+
 | Statistical  | Weighted by the statistical weight of each level   .                                                           |
 +--------------+----------------------------------------------------------------------------------------------------------------+
-| Landau-Zener | Weighted by the function :math:`W(l)=\frac{l(l+1)(2l+1)\times(n-1)! \times (n-2)!}{ (n+l)! \times (n-l-1)!}}` |
+| Landau-Zener | Weighted by the function :math:`W(l)={{l(l+1)(2l+1)\times(n-1)! \times (n-2)!}\over{ (n+l)! \times (n-l-1)!}}` |
 +--------------+----------------------------------------------------------------------------------------------------------------+
 | Separable    | Weighted by the function :math:`W(l)={{(2l+1)}\over{Z}}\times \exp\Big[{{-l \times(l+1)}\over{z}}\Big]`        |
 +--------------+----------------------------------------------------------------------------------------------------------------+
