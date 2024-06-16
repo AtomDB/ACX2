@@ -178,7 +178,7 @@ and vice versa. So if n' is 6.25, then 1/4  and 3/4 of the emission goes into
 the n=7 and 6 shells resepectively. 
 
 +=====+===================+==================================+
-|Value| n distribution    | l distribution                |
+|Value| n distribution    | l distribution                   |
 +-----+-------------------+----------------------------------+
 |  1  | one n shell       | even distribution by  l.         |
 |  2  | one n shell       | statistical distribution by l.   |
@@ -207,7 +207,7 @@ weighting is statistical (so more is captured into the :math: `1s3p ^3P_2` state
 | Statistical  | Weighted by the statistical weight of each level   .                                                           |
 | Landau-Zener | Weighted by the function :math:`W(l)={{l(l+1)(2l+1)\times(n-1)! \times (n-2)!}\over{ (n+l)! \times (n-l-1)!}}` |
 |Separable     | Weighted by the function :math:`W(l)={{(2l+1)}\over{Z}}\times \exp\Big[{{-l \times(l+1)}\over{z}}\Big]`        |
-+--------------+----------------------------------------------------------------------------------------------------------------|
++--------------+----------------------------------------------------------------------------------------------------------------+
 
 
 ++++++++++++++++++++++++++
