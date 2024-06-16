@@ -177,18 +177,18 @@ weighted, the split is (n'-n[round down]) into the n'[round up] shell,
 and vice versa. So if n' is 6.25, then 1/4  and 3/4 of the emission goes into
 the n=7 and 6 shells resepectively. 
 
-+=====+===================+==================================+
-|Value| n distribution    | l distribution                   |
-+-----+-------------------+----------------------------------+
-|  1  | one n shell       | even distribution by  l.         |
-|  2  | one n shell       | statistical distribution by l.   |
-|  3  | one n shell       | Landau-Zener distribution by  l. |
-|  4  | one n shell       | Separable distribution by l.     |
-|  5  | weighted 2 shells | even distribution by  l.         |
-|  6  | weighted 2 shells | statistical distribution by l.   |
-|  7  | weighted 2 shells | Landau-Zener distribution by l.  |
-|  8  | weighted 2 shells | Separable distribution by l.     |
-+-----+-------------------+----------------------------------+
++-------+-------------------+----------------------------------+
+| Value | n distribution    | l distribution                   |
++=======+===================+==================================+
+|  1    | one n shell       | even distribution by  l.         |
+|  2    | one n shell       | statistical distribution by l.   |
+|  3    | one n shell       | Landau-Zener distribution by  l. |
+|  4    | one n shell       | Separable distribution by l.     |
+|  5    | weighted 2 shells | even distribution by  l.         |
+|  6    | weighted 2 shells | statistical distribution by l.   |
+|  7    | weighted 2 shells | Landau-Zener distribution by l.  |
+|  8    | weighted 2 shells | Separable distribution by l.     |
++-------+-------------------+----------------------------------+
 
 
 ++++++++++++++++++++++++++++++++++++
@@ -200,9 +200,9 @@ realtive weighting of total capture into levels with the 3s, 3p or 3d
 configurations. Within all the levels sharing a configuration,
 weighting is statistical (so more is captured into the :math: `1s3p ^3P_2` state than the :math:`1s3p ^{3}P_0`.
 
-+==============+================================================================================================================+
-| Value        | l distribution                                                                                                 |
 +--------------+----------------------------------------------------------------------------------------------------------------+
+| Value        | l distribution                                                                                                 |
++==============+================================================================================================================+
 | Even         | Weighted evenly between l shells                                                                               |
 | Statistical  | Weighted by the statistical weight of each level   .                                                           |
 | Landau-Zener | Weighted by the function :math:`W(l)={{l(l+1)(2l+1)\times(n-1)! \times (n-2)!}\over{ (n+l)! \times (n-l-1)!}}` |
