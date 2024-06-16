@@ -1,3 +1,4 @@
+mock
 astropy
 wget
 sphinx
