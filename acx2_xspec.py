@@ -35,7 +35,7 @@ acx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
             "abund         \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
             "vbroad      \"km/s\"    0.0 0.0 0.0 10000.0 10000.0 -0.01",
             "tbroad      \"keV\"     0.0 0.0 0.0 100.0 100.0 -0.01",
-            "*redshift     \"\"      0.0")
+            "Redshift      \"\"      0.0 -0.999 -0.999 10.0 10.0 -0.01")
 
 vacx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
              "collnpar    \"kev/u,km/s\" 1.0 0.01 0.2 100. 1000. 0.01",
@@ -59,7 +59,7 @@ vacx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
              "Ni            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
              "vbroad      \"km/s\"    0.0 0.0 0.0 10000.0 10000.0 -0.01",
              "tbroad      \"keV\"     0.0 0.0 0.0 100.0 100.0 -0.01",
-             "*redshift     \"\"      0.0")
+             "Redshift      \"\"      0.0 -0.999 -0.999 10.0 10.0 -0.01")
 
 vvacx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
               "collnpar    \"kev/u,km/s\" 1.0 0.01 0.2 100. 1000. 0.01",
@@ -96,10 +96,10 @@ vvacx2Info = ("temperature   \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
               "Ni            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
               "vbroad      \"km/s\"    0.0 0.0 0.0 10000.0 10000.0 -0.01",
               "tbroad      \"keV\"     0.0 0.0 0.0 100.0 100.0 -0.01",
-              "*redshift     \"\"      0.0")
+              "Redshift      \"\"      0.0 -0.999 -0.999 10.0 10.0 -0.01")
 
 oneacx2Info = ("$element                14",
-               "$donorion               13",
+               "$ion                    13",
                "collnpar   \"kev/u,km/s\" 1.0 0.01 0.2 100. 1000. 0.01",
                "$collntype              1",
                "$acxmodel               8",
@@ -108,7 +108,7 @@ oneacx2Info = ("$element                14",
                "abund         \"\"      1.0 0.0 0.0 10.0 10.0 0.01",
                "vbroad      \"km/s\"    0.0 0.0 0.0 10000.0 10000.0 -0.01",
                "tbroad      \"keV\"     0.0 0.0 0.0 100.0 100.0 -0.01",
-               "*redshift     \"\"      0.0")
+               "Redshift      \"\"      0.0 -0.999 -0.999 10.0 10.0 -0.01")
 
 
 def acx2(engs, params, flux):
@@ -496,7 +496,7 @@ xspec.AllModels.addPyMod(vacx2, vacx2Info, 'add')
 xspec.AllModels.addPyMod(acx2, acx2Info, 'add')
 xspec.AllModels.addPyMod(oneacx2, oneacx2Info, 'add')
 
-
+print("Added models acx2, vacx2, vvacx2 and oneacx2 to XSPEC")
 
 # m = xspec.Model('vvacx2')
 # m = xspec.Model('vacx2')
