@@ -102,12 +102,13 @@ To load the ACX2 model into XSPEC, acx2_xspec module contains what you need. Fro
 Once this is done, the data will load.
 
 
-Three different models are loaded:
+Four different models are loaded:
 
 - acx2 : Emission from CX with the 14 main elements. Abundance is tied between all elements (so there is only 1 abundance keyword). Analogous to the apec model.
 - vacx2 : Emission from CX with the 14 main elements. Abundance is free to vary between all the elements (though it starts frozen). Analagous to the vapec model.
 - vvacx2 : Emission from 27 elements, H through Ni excluding Co. Abundance is free to vary between all the elements.
-- acx2oneion
+- acx2oneion : Emission from CX with one specific ion, specified with element and ion, where ion is the ion charge plus 1. 
+
 
 .. note::
   Note that in the acx and vacx cases, unlike in the apec and vapec models, the effective abundance of the minor recombining elements is 0, not solar. This speeds up calculation time and does not significantly effect the resulting emission.
@@ -151,6 +152,73 @@ Model parameters
 
 .. note::
    The units for collision velocity in XSPEC are km/s, not cm/s as in the underlying ACX models. This is to keep the numbers closer to 1, which XSPEC likes.
+
+++++++++++++++++++++
+acxmodel definitions
+++++++++++++++++++++
+These are based on analytical formulae. For ions with nlS resolved
+cross sections, these settings are ignored. For those with n resolved,
+the l distribution is implemented, but the n distribution is ignored
+(so models 1 and 5 give the same results). For those with no other
+information, capture is into n shells defined by:
+
+.. math::
+
+  n' = q \sqrt{{{I_H}\over{I_p}}}\Big(1 + {{q-1}\over{\sqrt{2q}}}\Big)^{-1/2}
+ 
+Where :math:`I_H` is the Rydberg constant, :math:`I_p` is the donor
+ionization potential, and :math:`q` is the recombining ion charge.
+
+For the acx1 models, the total cross section is
+always fixed to :math:`3\times 10^{-15}` cm:sup:`2`. Capture is split
+between the n shells, depending on the setting: if it is in one shell,
+then this is the one closest to n' (rounding as normal). If it is
+weighted, the split is (n'-n[round down]) into the n'[round up] shell,
+and vice versa. So if n' is 6.25, then 1/4  and 3/4 of the emission goes into
+the n=7 and 6 shells resepectively. 
+
++-------+-------------------+----------------------------------+
+| Value | n distribution    | l distribution                   |
++=======+===================+==================================+
+|  1    | one n shell       | even distribution by  l.         |
++-------+-------------------+----------------------------------+
+|  2    | one n shell       | statistical distribution by l.   |
++-------+-------------------+----------------------------------+
+|  3    | one n shell       | Landau-Zener distribution by  l. |
++-------+-------------------+----------------------------------+
+|  4    | one n shell       | Separable distribution by l.     |
++-------+-------------------+----------------------------------+
+|  5    | weighted 2 shells | even distribution by  l.         |
++-------+-------------------+----------------------------------+
+|  6    | weighted 2 shells | statistical distribution by l.   |
++-------+-------------------+----------------------------------+
+|  7    | weighted 2 shells | Landau-Zener distribution by l.  |
++-------+-------------------+----------------------------------+
+|  8    | weighted 2 shells | Separable distribution by l.     |
++-------+-------------------+----------------------------------+
+
+
+++++++++++++++++++++++++++++++++++++
+Meaning of the l-shell distributions
+++++++++++++++++++++++++++++++++++++
+
+Note that all of these weighting schemes refer to the l distribution. For example, the
+realtive weighting of total capture into levels with the 3s, 3p or 3d
+configurations. Within all the levels sharing a configuration,
+weighting is statistical (so more is captured into the :math:`1s3p ^3P_2` state than the :math:`1s3p ^{3}P_0`.
+
++--------------+----------------------------------------------------------------------------------------------------------------+
+| Value        | l distribution                                                                                                 |
++==============+================================================================================================================+
+| Even         | Weighted evenly between l shells                                                                               |
++--------------+----------------------------------------------------------------------------------------------------------------+
+| Statistical  | Weighted by the statistical weight of each level   .                                                           |
++--------------+----------------------------------------------------------------------------------------------------------------+
+| Landau-Zener | Weighted by the function :math:`W(l)=\frac{l(l+1)(2l+1)\times(n-1)! \times (n-2)!}{ (n+l)! \times (n-l-1)!}}` |
++--------------+----------------------------------------------------------------------------------------------------------------+
+| Separable    | Weighted by the function :math:`W(l)={{(2l+1)}\over{Z}}\times \exp\Big[{{-l \times(l+1)}\over{z}}\Big]`        |
++--------------+----------------------------------------------------------------------------------------------------------------+
+
 
 ++++++++++++++++++++++++++
 Normalization of the model
@@ -277,7 +345,14 @@ Version number incremented to sync data and code release file numbers
 Major update to add velocity and thermal broadening. Data files rearranged to enable faster processing.
 A big thank you to McKenna Blake for working on this project.
 
+2.1.1
+May 28th 2024
+Bugfix: acx2_xspec has mis-indexed the redshift, leading to incorrect energies. Thank you to Shuinai Zhang for identifying this mistake.
 
+2.1.2
+June 16th 2024
+Renamed redshift to Redshift in XSPEC wrapper for consistency with
+other XSPEC models. Add in oneacx2 xspec model.
 
 
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
