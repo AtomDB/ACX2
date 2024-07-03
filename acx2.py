@@ -19,6 +19,7 @@ UNIVERSAL_CX_CROSSSECTION=3e-15 # in cm^2
 DEBUG=False
 SINGLE_RECOMBINATION = 1
 FULL_RECOMBINATION = 2
+FULL_NORMALIZED_RECOMBINATION = 3
 __version__="2.1.0"
 
 
@@ -229,12 +230,13 @@ class ACXModel():
 
   def set_recombtype(self, recombtype):
     """
-    Set the ACX spectrum type
+    Set recombination type: 1 = single, 2 = full, 3 = full renormalized
+
 
     PARAMETERS
     ----------
-    acxmodel : int
-      The acxmodel (between 1 and 8)
+    recombtype : int
+      The recombination type (1,2 or 3)
 
     """
     self.recombtype = recombtype
@@ -263,7 +265,6 @@ class ACXModel():
     self.ebins_set = True
     for donor in self.DonorList:
       donor.set_ebins(ebins)
-
 
 
 
@@ -578,32 +579,49 @@ class ACXDonorModel():
   import pyatomdb, numpy, os, hashlib
 
   def __init__(self, donor, \
-               donor_linefile, \
-               donor_contfile, \
-               donor_crosssectionfile,\
+               donor_linefile=None, \
+               donor_contfile=None, \
+               donor_crosssectionfile=None, \
                abundset='AG89',\
-               elements=list(range(1,31)),\
+               elements=None,\
                acxmodel = 8, \
                recombtype = SINGLE_RECOMBINATION,\
                collisiontype = 1):
 
+    if ((donor_linefile is None) or (donor_contfile is None) or (donor_crosssectionfile is None)):
+      curversion = open(os.path.expandvars('$ATOMDB/VERSION_ACX'),'r').read()[:-1]
+    if donor_linefile is None:
+      donor_linefile_actual = os.path.expandvars("$ATOMDB/acx2_XDONORX_vXVERSIONX_line.fits").replace('XDONORX', donor).replace('XVERSIONX', curversion)
+    else:
+      donor_linefile_actual = os.path.expandvars(donor_linefile)
+
+    if donor_contfile is None:
+      donor_contfile_actual = os.path.expandvars("$ATOMDB/acx2_XDONORX_vXVERSIONX_cont.fits").replace('XDONORX', donor).replace('XVERSIONX', curversion)
+    else:
+      donor_contfile_actual = os.path.expandvars(donor_contfile)
+
+    if donor_crosssectionfile is None:
+      donor_crosssectionfile_actual = os.path.expandvars("$ATOMDB/acx2_XDONORX_vXVERSIONX_sigma.fits").replace('XDONORX', donor).replace('XVERSIONX', curversion)
+    else:
+      donor_crosssectionfile_actual = os.path.expandvars(donor_crosssectionfile)
+
 
     self.donor = donor.lower() # store in lower case
-    self.donor_linefile = os.path.expandvars(donor_linefile)
-    self.donor_contfile = os.path.expandvars(donor_contfile)
-    self.donor_crosssectionfile = os.path.expandvars(donor_crosssectionfile)
-#    input('DON1')
+    self.donor_linefile = donor_linefile_actual
+    self.donor_contfile = donor_contfile_actual
+    self.donor_crosssectionfile = donor_crosssectionfile_actual
+
 
     try:
       self.linedata = pyfits.open(self.donor_linefile)
     except:
-      print("Cannot open line data file %s"%(self.linedata))
+      print("Cannot open line data file %s"%(self.donor_linefile))
       raise
 
     try:
       self.contdata = pyfits.open(self.donor_contfile)
     except:
-      print("Cannot open continuum data file %s"%(self.contdata))
+      print("Cannot open continuum data file %s"%(self.donor_contfile))
       raise
 
     try:
@@ -611,8 +629,10 @@ class ACXDonorModel():
       self.donormass = self.crosssectiondata[1].header['DonMass']
 
     except:
-      print("Cannot open cross section data file %s"%(self.crosssectiondata))
+      print("Cannot open cross section data file %s"%(self.donor_crosssectionfile))
       raise
+
+
 
     # create a structure for the spectral data
     self.spectra = {}
@@ -625,14 +645,15 @@ class ACXDonorModel():
 
     self.abundset=abundset
     self.default_abundset=abundset
-#    input('DON2')
 
 
     # if elements are specified, use them. Otherwise, use Z=1-30
-    if pyatomdb.util.keyword_check(elements):
-      self.elements = elements
+    if elements is None:
+      self.elements = list(range(1,27))
+      self.elements.append(28)
     else:
-      self.elements=list(range(1,31))
+      self.elements = elements
+
 
     # set the abundances:
     #   (1) the initial vector is whatever set AtomDB was calculated on,
@@ -754,16 +775,10 @@ class ACXDonorModel():
       except:
         resolution = self.crosssectiondata['INDEX'].data['resn'][ihdu].decode('ascii')
 
-#      self.crosssectiondata = crosssectiondata[ihdu+2].data
-#      self.coupling = crosssectiondata['INDEX'].data['resn'][i].decode('ascii')
-#      self.DonorMass = crosssectiondata[ihdu+2].header['DONMASS']
-#      self.RecvMass = crosssectiondata[ihdu+2].header['RECMASS']
-
     else:
       ihdu = -1
       resolution = 'ACX1'
-#      self.RecvMass=pyatomdb.atomic.Z_to_mass(self.Z)
-#      self.DonorMass=crosssectiondata['INDEX'].header['DONMASS']
+
     if DEBUG:
       print("crosssectiondata type = %s, hdu = %i"%(resolution, ihdu))
     return resolution.upper(), ihdu
@@ -904,6 +919,24 @@ class ACXDonorModel():
           self.spectra[Z][z1].set_ebins(self.ebins, ebins_checksum=self.ebins_checksum)
 
 
+  def calc_crosssection(self, collparam):
+    """
+    Calculate the total and partial cross sections by n, l, S.
+
+    PARAMETERS
+    ----------
+
+    collparam : float
+      Collision energy, or velocity, as determined by set_collisiontype, in kev/u,  cm/s or km/s
+
+    RETURNS
+    -------
+    TBD
+
+    """
+
+
+
   def calc_spectrum(self, collparam, Tbroaden, vbroaden):
     """
     Calculate the spectrum we want
@@ -936,19 +969,19 @@ class ACXDonorModel():
           self.spectra[Z]={}
         for z1 in range(2, Z+2):# z1 here is the recombin*ing* ion charge +1
           if self.recombtype == SINGLE_RECOMBINATION:
-            ionf = self.ionfrac[Z][z1-1]
-          elif self.recombtype == FULL_RECOMBINATION:
+            ionf = self.ionfrac[Z][z1-1] #ionfrac is indexed from 0, not 1
+          elif ((self.recombtype == FULL_RECOMBINATION) | (self.recombtype == FULL_NORMALIZED_RECOMBINATION)):
             ionf = sum(self.ionfrac[Z][z1-1:])
           else:
             raise ValueError("Invalid recombtype ", self.recombtype)
-          if self.abund[Z]*ionf > 1e-10: #ionfrac is indexed from 0, not 1
+          if self.abund[Z]*ionf > 1e-10:
 #            print("Z=%i, z1=%i"%(Z, z1))
 
 
             if not z1 in self.spectra[Z].keys():
               # Initialize new CXIonSpectrum object for this ion
               resolution, ihdu = self.find_crosssection_type(Z,z1)
-
+#              print("Z, z1, resolution, ihdu", Z, z1, resolution, ihdu)
               if resolution=='ACX1':
                 self.spectra[Z][z1] = CXIonSpectrum_ACX1(Z,z1,ihdu, \
                   self.linedata, self.contdata,\
@@ -974,6 +1007,7 @@ class ACXDonorModel():
 
             # set the energy bins for the spectrum
             self.spectra[Z][z1].set_ebins(self.ebins, ebins_checksum=self.ebins_checksum)
+            self.spectra[Z][z1].set_recombtype(self.recombtype)
 
             if DEBUG:
               if not Z in self.emiss_debug.keys():
@@ -1186,7 +1220,8 @@ class ACXDonorModel():
     PARAMETERS
     ----------
     recombtype : int
-      The type of recombination (1=single, 2=all the way to neutral)
+      The type of recombination (1=single, 2=all the way to neutral,
+      3 = same as 2, but renomalized by total cross section)
 
     """
     self.recombtype = recombtype
@@ -1468,6 +1503,25 @@ class CXIonSpectrum():
     return cont
 
 
+  def set_recombtype(self, recombtype):
+    """
+    Set the energy bins, also in each donor model
+
+    PARAMETERS
+    ----------
+    ebins : array(float)
+      The energy bins in keV for the spectrum
+
+    RETURNS
+    -------
+    None
+    """
+
+    if not recombtype in [SINGLE_RECOMBINATION,FULL_RECOMBINATION, FULL_NORMALIZED_RECOMBINATION]:
+      print("ERROR: invalid recombtype ", recombtype)
+
+    else:
+      self.recombtype = recombtype
 
 
 
@@ -1786,8 +1840,12 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
             npse = self.ioncontdata['N_Pseudo'][p]
             spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Pseudo'][p][:npse], self.ioncontdata['Pseudo'][p][:npse]) * (capture_frac[p])
 
+# This line for renormalization
+    if self.recombtype != FULL_NORMALIZED_RECOMBINATION:
+      spec = spec * UNIVERSAL_CX_CROSSSECTION
+    else:
+      print("rescaling spectrum by %e"%(UNIVERSAL_CX_CROSSSECTION))
 
-    spec = spec * UNIVERSAL_CX_CROSSSECTION
     self.ebins_checksum = self.ebins_checksum
     self.spectrum = spec
     self.spectrum_ready = True
@@ -2004,13 +2062,9 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
 #    print("NLS Spectrum calc")
 
     #create array that goes through the sigma files for the known distribution of n l s
-    Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
-    for sig in self.crosssectiondata:
-      Cout = loginterp(collenergy, sig['E'], sig['C'])
-      for b,item in enumerate(self.n):
-        if self.n[b] == sig['n'] and self.l[b] == sig['l'] and self.s[b] == sig['S2p1']:
-          Coutarraynl[b] = Cout
+    cross_section = self.calc_crosssection(collenergy)
 
+    Coutarraynl = cross_section['sigma']
     #for every transition, multiplies the capture_frac with the emission, and sums the value. total emissivity
 #    new_epsilon = numpy.sum(Coutarraynl * self.ionlinedata['Epsilon'], 1)
     if len(Coutarraynl)==0:
@@ -2108,7 +2162,9 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     self.ebins_checksum = self.ebins_checksum
     self.spectrum = spec
     self.spectrum_ready = True
-
+    if self.recombtype == FULL_NORMALIZED_RECOMBINATION:
+      print("rescaling spectrum by %e"%(cross_section['sigma_total']))
+      self.spectrum /= cross_section['sigma_total']
     return self.spectrum * collvelocity
 
 
@@ -2144,40 +2200,6 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
            'lo': lo}
     return(ret)
 
-    # emissivity = 0.0
-    # out_wv = 0.0
-    # for sig in self.crosssectiondata:
-      # Cout = loginterp(collenergy, sig['E'], sig['C'])
-
-      # if Cout > 0:
-
-        # if not sig['n'] in self.spectra.keys():
-          # self.spectra[sig['n']] = {}
-        # if not sig['l'] in self.spectra[sig['n']].keys():
-          # self.spectra[sig['n']][sig['l']] = {}
-        # if not sig['S2p1'] in self.spectra[sig['n']][sig['l']].keys():
-          # try:
-            # self.spectra[sig['n']][sig['l']][sig['S2p1']] = \
-               # CXShellSpectrum(self.Z, self.z1, sig['n'], sig['l'], \
-               # self.linedata[self.linedataindexes[sig['n']][sig['l']][sig['S2p1']]].data,\
-               # self.contdata[self.contdataindexes[sig['n']][sig['l']][sig['S2p1']]].data)
-          # except KeyError:
-          # # Case where there is no data for this Z, z1, nn, l
-            # self.spectra[sig['n']][sig['l']][sig['S2p1']] = \
-               # DummyCXShellSpectrum(self.Z, self.z1,sig['n'],sig['l'], s = sig['S2p1'])
-
-        # line_emissivity = self.spectra[sig['n']][sig['l']][sig['S2p1']].calc_line_emissivity(up, lo)
-        # emissivity += Cout * line_emissivity['Epsilon']
-        # if line_emissivity['Epsilon']>0:
-          # out_wv = line_emissivity['Lambda']
-    # emissivity *= collvelocity
-    # ret = {'Lambda': out_wv,
-           # 'Epsilon': emissivity,
-           # 'up': line_emissivity['up'],
-           # 'lo': line_emissivity['lo']}
-
-    # return ret
-
 
   def set_ebins(self, ebins, ebins_checksum=False):
     """
@@ -2206,6 +2228,26 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
           self.spectra[n][l][s].set_ebins(ebins, ebins_checksum= ebins_checksum)
 
 
+  def calc_crosssection(self, collenergy):
+
+    #create array that goes through the sigma files for the known distribution of n with l from above
+    Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
+    for sig in self.crosssectiondata:
+      Cout = loginterp(collenergy, sig['E'], sig['C'])
+      for b,item in enumerate(self.n):
+        if self.n[b] == sig['n'] and self.l[b] == sig['l'] and \
+           self.s[b]==sig['s2p1']:
+          Coutarraynl[b] = Cout
+    totalCout = sum(Coutarraynl)
+    ret = {}
+    ret['n'] = self.n
+    ret['l'] = self.l
+    ret['S'] = numpy.zeros(len(self.n), dtype=int)
+    ret['S'][:] = -1
+    ret['sigma'] = Coutarraynl
+    ret['sigma_total'] = totalCout
+
+    return(ret)
 
 
 
@@ -2268,6 +2310,7 @@ class CXIonSpectrum_N(CXIonSpectrum):
     # find, and store, the relevant HDUs from the line and continuum datafiles.
 
     #find the hdu location for the matching Z and z1 for line and continuum
+
     i = numpy.where((linedata[1].data['Z'] == self.Z) &\
                     (linedata[1].data['z1'] == self.z1))[0][0]
 
@@ -2345,18 +2388,9 @@ class CXIonSpectrum_N(CXIonSpectrum):
     #emax = min(sigmadata['E_max'])
 #    print("N Spectrum calc")
 
+    cross_section = self.calc_crosssection(collenergy)
 
-    l = -1 * (self.acxmodel%4)
-    # if l = -4, this returns 0. Correct
-    if l==0: l=-4
-
-    #create array that goes through the sigma files for the known distribution of n with l from above
-    Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
-    for sig in self.crosssectiondata:
-      Cout = loginterp(collenergy, sig['E'], sig['C'])
-      for b,item in enumerate(self.n):
-        if self.n[b] == sig['n'] and self.l[b] == l:
-          Coutarraynl[b] = Cout
+    Coutarraynl = cross_section['sigma']
 
     #for each shell, multiplies the capture_frac with the emission, and sums the value. total emissivity
 #    new_epsilon = numpy.sum(Coutarraynl * self.ionlinedata['Epsilon'], 1)
@@ -2456,6 +2490,12 @@ class CXIonSpectrum_N(CXIonSpectrum):
     self.spectrum = spec
     self.spectrum_ready = True
 
+    # renormalize by total cross section
+    if self.recombtype == FULL_NORMALIZED_RECOMBINATION:
+      if cross_section['sigma_total'] > 0:
+        print("rescaling spectrum N by %e"%(cross_section['sigma_total']))
+
+        self.spectrum/=cross_section['sigma_total']
     return self.spectrum * collvelocity
 
 
@@ -2524,6 +2564,30 @@ class CXIonSpectrum_N(CXIonSpectrum):
       for l in self.spectra[n].keys():
         self.spectra[n][l].set_ebins(ebins, ebins_checksum= ebins_checksum)
 
+  def calc_crosssection(self, collenergy):
+
+    # there is no l distribution, so use ACX1 settings
+    l = -1 * (self.acxmodel%4)
+    # if l = -4, this returns 0. Correct back to -4
+    if l==0: l=-4
+
+    #create array that goes through the sigma files for the known distribution of n with l from above
+    Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
+    for sig in self.crosssectiondata:
+      Cout = loginterp(collenergy, sig['E'], sig['C'])
+      for b,item in enumerate(self.n):
+        if self.n[b] == sig['n'] and self.l[b] == l:
+          Coutarraynl[b] = Cout
+    totalCout = sum(Coutarraynl)
+    ret = {}
+    ret['n'] = self.n
+    ret['l'] = self.l
+    ret['S'] = numpy.zeros(len(self.n), dtype=int)
+    ret['S'][:] = -1
+    ret['sigma'] = Coutarraynl
+    ret['sigma_total'] = totalCout
+
+    return(ret)
 
 
 class CXShellSpectrum():

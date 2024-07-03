@@ -764,16 +764,16 @@ def generate_datatypes(dtype, npseudo=0, ncontinuum=0):
                                  'ion_drv', \
                                  'upperlev',\
                                  'lowerlev'],\
-                        'formats':[numpy.float,\
-                                   numpy.float,\
-                                   numpy.float,\
-                                   numpy.float,\
-                                   numpy.int,\
-                                   numpy.int,\
-                                   numpy.int,\
-                                   numpy.int,\
-                                   numpy.int,\
-                                   numpy.int]})
+                        'formats':[float,\
+                                   float,\
+                                   float,\
+                                   float,\
+                                   int,\
+                                   int,\
+                                   int,\
+                                   int,\
+                                   int,\
+                                   int]})
 
   elif dtype == 'linetype_cx_nl':
     ret = numpy.dtype({'names':['lambda',\
@@ -784,14 +784,14 @@ def generate_datatypes(dtype, npseudo=0, ncontinuum=0):
                                 'lowerlev',\
                                 'n',\
                                 'l'],\
-                       'formats':[numpy.float,\
-                                  numpy.float,\
-                                  numpy.int,\
-                                  numpy.int,\
-                                  numpy.int,\
-                                  numpy.int,\
-                                  numpy.int,\
-                                  numpy.int]})
+                       'formats':[float,\
+                                  float,\
+                                  int,\
+                                  int,\
+                                  int,\
+                                  int,\
+                                  int,\
+                                  int]})
 
   elif dtype =='linelist_cie':
     ret = numpy.dtype({'names':['lambda',\
@@ -802,14 +802,14 @@ def generate_datatypes(dtype, npseudo=0, ncontinuum=0):
                                  'ion', \
                                  'upperlev',\
                                  'lowerlev'],\
-                        'formats':[numpy.float,\
-                                   numpy.float,\
-                                   numpy.float,\
-                                   numpy.float,\
-                                   numpy.int,\
-                                   numpy.int,\
-                                   numpy.int,\
-                                   numpy.int]})
+                        'formats':[float,\
+                                   float,\
+                                   float,\
+                                   float,\
+                                   int,\
+                                   int,\
+                                   int,\
+                                   int]})
 
   elif dtype == 'linetype_cap':
     ret = numpy.dtype({'names':['Lambda',\
@@ -822,16 +822,16 @@ def generate_datatypes(dtype, npseudo=0, ncontinuum=0):
                                  'Ion_Drv', \
                                  'UpperLev',\
                                  'LowerLev'],\
-                        'formats':[numpy.float,\
-                                   numpy.float,\
-                                   numpy.float,\
-                                   numpy.float,\
-                                   numpy.int,\
-                                   numpy.int,\
-                                   numpy.int,\
-                                   numpy.int,\
-                                   numpy.int,\
-                                   numpy.int]})
+                        'formats':[float,\
+                                   float,\
+                                   float,\
+                                   float,\
+                                   int,\
+                                   int,\
+                                   int,\
+                                   int,\
+                                   int,\
+                                   int]})
 
   elif dtype == 'linelist_cie_cap':
     ret = numpy.dtype({'names':['Lambda',\
@@ -842,14 +842,14 @@ def generate_datatypes(dtype, npseudo=0, ncontinuum=0):
                                  'Ion', \
                                  'UpperLev',\
                                  'LowerLev'],\
-                        'formats':[numpy.float,\
-                                   numpy.float,\
-                                   numpy.float,\
-                                   numpy.float,\
-                                   numpy.int,\
-                                   numpy.int,\
-                                   numpy.int,\
-                                   numpy.int]})
+                        'formats':[float,\
+                                   float,\
+                                   float,\
+                                   float,\
+                                   int,\
+                                   int,\
+                                   int,\
+                                   int]})
 
 
   elif dtype == 'continuum':
@@ -1003,7 +1003,7 @@ def gen_autos_input(lvconfigs, gndconfig, nmax, nel, Z, z1r):
   f=open(fname, 'w')
   f.write('A.S. '+elsymb+'+'+repr(z1-1)+' structure\n')
   f.write(' &SALGEB MXCONF='+repr(mxconf)+' MXVORB='+repr(mxvorb)+\
-          ' RAD=\'E2\' CUP=\'ICM\' &END\n')
+          ' RAD=\'E2\' CUP=\'ICR\' &END\n')
 
   s_out = ''
   l = 0
@@ -1110,6 +1110,7 @@ def generate_autostructure(Z, z1r, nmax, lvdat=False, filemap = False, outdir='a
   autosbin = '/home/afoster/autostructure/autos.x'
   #laptop
   #autosbin='/export1/autostructure/autos.x'
+  autosbin='/home/afoster/work/export1/projects/dr/codes/aslm.x'
   odir = os.getcwd()
   #ndir = '../autos/'+pyatomdb.atomic.z0toelsymb(z0).lower()+repr(z1)
 
@@ -1134,6 +1135,10 @@ def generate_autostructure(Z, z1r, nmax, lvdat=False, filemap = False, outdir='a
   # convert autostructure to FITS files
 
   autdat = autos.read_oic(ndir)
+  #print(autdat.keys(0))
+  autdat = autdat[list(autdat.keys())[0]]
+  autdat = autdat[list(autdat.keys())[0]]
+
 
   # create temporary FITS file names
   tmplvfilename = ndir+'/%s_%i_LV_autos.fits'%(pyatomdb.atomic.Ztoelsymb(Z).lower(), z1r)
@@ -1145,7 +1150,8 @@ def generate_autostructure(Z, z1r, nmax, lvdat=False, filemap = False, outdir='a
   lvtmp['Z'] = Z
   lvtmp['z1'] = z1r
   lvtmp['comments'] = ['Generated by Autostructure for ACX 2 run']
-
+  #for ik, k in enumerate(autdat.keys()):
+    #print("%i : "%(ik), k)
   lv_to_k = numpy.zeros(len(autdat['lev'])+1, dtype=int)
   for i in range(len(autdat['lev'])):
     lv_to_k[autdat['lev']['lv'][i]] = autdat['lev']['k'][i]
@@ -1189,7 +1195,7 @@ def generate_autostructure(Z, z1r, nmax, lvdat=False, filemap = False, outdir='a
 
 
   for i in range(len(lvdat)):
-    lvdat['n_quan'][i] = pyatomdb.atomdb.extract_n(lvdat['elec_config'][i].decode('ascii'))
+    lvdat['n_quan'][i] = pyatomdb.atomdb._extract_n(lvdat['elec_config'][i].decode('ascii'))
 
   lvdat['l_quan'] = autdat['lev']['l']
   lvdat['s_quan'] = (autdat['lev']['s2p1']-1.0)/2.0
@@ -1335,7 +1341,7 @@ def check_atomic_data(Z, z1, max_n, fmapfile=False):
   if not lvfile=='':
     #help(lvfile)
     lvdat = pyatomdb.pyfits.open(lvfile)
-    
+
 #    if (((Z==23)|(Z==21)) & (z1==7)):
 #      print("Hack for v7")
 #      zzz=input('argh')
@@ -1343,12 +1349,12 @@ def check_atomic_data(Z, z1, max_n, fmapfile=False):
 
 #      finallvfilename, finallafilename = \
 #         merge_autostructure(Z, z1-1, autlvfilename, autlafilename, lvfile, lafile, filemap=fmapfile )
- 
+
 
     if max(lvdat[1].data['n_quan']) >= max_n:
       # all is well
       pass
-    
+
     else:
       print("Insufficient n-shell data available in %s (need %i, have %i). Generating atomic data for Z=%i, z1=%i"%\
            (lvfile, max_n, max(lvdat[1].data['n_quan']),Z, z1-1))
@@ -1605,7 +1611,7 @@ def merge_autostructure(Z, z1r, autlvfilename, autlafilename, lvfname, lafname, 
 
 #  pickle.dump(d, open('pickles/dumplvtrans_%i_%i.pkl'%(Z,z1), 'wb'))
 #  exit()
-  
+
   lvdat=numpy.zeros(n_levels, dtype=
                     numpy.dtype({'names':['elec_config','energy',\
                                           'e_error', 'n_quan',\
@@ -1768,10 +1774,10 @@ def merge_autostructure(Z, z1r, autlvfilename, autlafilename, lvfname, lafname, 
   ladat2['data']=ladat
   autlafilename_out = re.sub('autos.fits','acx.fits',autlafilename)
   autlvfilename_out = re.sub('autos.fits','acx.fits',autlvfilename)
-  
+
   pyatomdb.util.write_la_file(autlafilename_out, ladat2, clobber=True)
   print("file written: %s"%(autlafilename_out))
-  
+
   rtrck = open(rtrckfname, 'a')
   rtrck.write('LA File written\n')
   rtrck.close()
@@ -1983,7 +1989,7 @@ def make_cx_spectrumfile(Z, z1, donorsym, ftype, sigma_cx, sigma_cx_fname, fmapf
             if len(linelist) > 0:
               linelist=linelist[(linelist['lambda']>pyatomdb.const.HC_IN_KEV_A /settings['GridMaximum'])   &\
                          (linelist['lambda']<pyatomdb.const.HC_IN_KEV_A /settings['GridMinimum'])]
-          
+
 
             if len(linelist) > 0:
               weaklines = linelist[(linelist['epsilon']< MinEpsilon)]
@@ -2017,8 +2023,8 @@ def make_cx_spectrumfile(Z, z1, donorsym, ftype, sigma_cx, sigma_cx_fname, fmapf
         Sresolved = True
       else:
         Sresolved = False
-        
-      
+
+
       check_atomic_data(Z, z1, max(nlist), fmapfile=fmapfile)
 
       # create the capture into each shell
@@ -2059,7 +2065,7 @@ def make_cx_spectrumfile(Z, z1, donorsym, ftype, sigma_cx, sigma_cx_fname, fmapf
 
 ##
       for n in range(min(nlist),max(nlist)+1):
-		
+
         for l in range(0,n):
           for S in Slist:
             ldist = numpy.zeros(n, dtype=float)
@@ -2290,7 +2296,7 @@ def make_cx_spectrumfile(Z, z1, donorsym, ftype, sigma_cx, sigma_cx_fname, fmapf
 
             linelist=linelist[(linelist['lambda']>pyatomdb.const.HC_IN_KEV_A /settings['GridMaximum'])   &\
                        (linelist['lambda']<pyatomdb.const.HC_IN_KEV_A /settings['GridMinimum'])]
-          
+
 
           if len(linelist) > 0:
             weaklines = linelist[(linelist['epsilon']< MinEpsilon)]
@@ -2345,7 +2351,7 @@ def pickle_to_fits(picklefilename, fitsfilestem):
   # check if pickle file exists
 
   try:
-    cxdat = numpy.load(picklefilename)
+    cxdat = numpy.load(picklefilename,allow_pickle=True)
 
   except:
     print("Supplied pickle file does not exist: %s"%(picklefilename))
@@ -2393,7 +2399,7 @@ def pickle_to_fits(picklefilename, fitsfilestem):
   dat['cont']['N_Pseudo'][0] = len(pseudocont)
 #  print('peudocont', pseudocont)
 #  print('E_peudocont', epseudo)
-  
+
   dat['cont']['E_Pseudo'][0][:len(pseudocont)] = epseudo
   dat['cont']['Pseudo'][0][:len(pseudocont)] = pseudocont
 
@@ -2407,6 +2413,7 @@ def pickle_to_fits(picklefilename, fitsfilestem):
 
 
       # now make an HDU for all of this
+  print(linedata.dtype.names)
   LHDUdat = pyatomdb.apec.create_lhdu_nei(linedata)
 
 
@@ -2464,12 +2471,12 @@ def pickle_to_fits(picklefilename, fitsfilestem):
 
 
   #now repeat for continuum data
-  
-  
+
+
 
       # now make an HDU for all of this
   CHDUdat = pyatomdb.apec.create_chdu_cie(cocodata)
-  
+
 
 #      isecCHDUdat=iDens+iTe*settings['NumDens']
   CHDUdat.header['EXTNAME']=("CX_EMISS","name of this binary table extension")
@@ -2570,7 +2577,7 @@ if __name__=='__main__':
 
   # Now we need to make a spectrum file
   ###HYDRACHANGE
-  make_cx_spectrumfile(Z, z1, donorsym, ftype, sigma_cx, sigma_cx_fname, fmapfile='/home/afoster/projects/atomdb_cx/filemap_3.0.9_cx')
+  make_cx_spectrumfile(Z, z1, donorsym, ftype, sigma_cx, sigma_cx_fname, fmapfile='/export1/projects/ACX2/generation/filemap_3.0.9_cx')
 #  make_cx_spectrumfile(Z, z1, donorsym, ftype, sigma_cx, sigma_cx_fname, fmapfile='/export1/projects/atomdb_cx/filemap_v3.0.9_cx')
 
   #
