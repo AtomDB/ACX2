@@ -1,0 +1,9 @@
+mock
+astropy
+wget
+sphinx
+scipy
+requests
+pyatomdb
+numpydoc
+sphinx_rtd_theme
