@@ -354,5 +354,9 @@ June 16th 2024
 Renamed redshift to Redshift in XSPEC wrapper for consistency with
 other XSPEC models. Add in oneacx2 xspec model.
 
+2.1.3
+July 25th 2024
+Added a third recombination option, where each ions' recombination is normalized by the total cross section.
+Fixed bug with calc_line_emissivity where normalization was incorrect. Thank you to Yuki Amano for spotting this bug.
 
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
