@@ -1921,6 +1921,8 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
       out_wv = self.ionlinedata['Lambda'][i[0]]
       emissivity = new_epsilon[i[0]]* UNIVERSAL_CX_CROSSSECTION
 
+    emissivity *= collvelocity
+
     ret = {'Lambda': out_wv,
            'Epsilon': emissivity,
            'up': up,
@@ -2163,7 +2165,6 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     self.spectrum = spec
     self.spectrum_ready = True
     if self.recombtype == FULL_NORMALIZED_RECOMBINATION:
-      print("rescaling spectrum by %e"%(cross_section['sigma_total']))
       self.spectrum /= cross_section['sigma_total']
     return self.spectrum * collvelocity
 
@@ -2193,6 +2194,7 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     else:
       out_wv = self.ionlinedata['Lambda'][i[0]]
       emissivity = new_epsilon[i[0]]
+    emissivity *= collvelocity
 
     ret = {'Lambda': out_wv,
            'Epsilon': emissivity,
@@ -2531,13 +2533,14 @@ class CXIonSpectrum_N(CXIonSpectrum):
       out_wv = self.ionlinedata['Lambda'][i[0]]
       emissivity = new_epsilon[i[0]]
 
+    emissivity *= collvelocity
     ret = {'Lambda': out_wv,
            'Epsilon': emissivity,
            'up': up,
            'lo': lo}
 
     return ret
-    return ret
+
 
 
   def set_ebins(self, ebins, ebins_checksum=False):
