@@ -1492,7 +1492,7 @@ class CXIonSpectrum():
     ihi = numpy.where(iord>=n)[0]
 
     # do cumulative sum integration
-    cum_cont = scipy.integrate.cumtrapz(C_all, E_all, initial=0)
+    cum_cont = scipy.integrate.cumulative_trapezoid(C_all, E_all, initial=0)
 
     # extract the cumulative sum at the output points
     C_out = cum_cont[ihi]
@@ -2696,7 +2696,7 @@ to recombination into this shell.
     ihi = numpy.where(iord>=n)[0]
 
     # do cumulative sum integration
-    cum_cont = scipy.integrate.cumtrapz(C_all, E_all, initial=0)
+    cum_cont = scipy.integrate.cumulative_trapezoid(C_all, E_all, initial=0)
 
     # extract the cumulative sum at the output points
     C_out = cum_cont[ihi]
