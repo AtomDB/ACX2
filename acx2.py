@@ -20,7 +20,7 @@ DEBUG=False
 SINGLE_RECOMBINATION = 1
 FULL_RECOMBINATION = 2
 FULL_NORMALIZED_RECOMBINATION = 3
-__version__="2.1.0"
+__version__="2.1.4"
 
 
 # This code is for initializing/auto-downloading the data files

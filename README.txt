@@ -359,4 +359,18 @@ July 25th 2024
 Added a third recombination option, where each ions' recombination is normalized by the total cross section.
 Fixed bug with calc_line_emissivity where normalization was incorrect. Thank you to Yuki Amano for spotting this bug.
 
+2.1.3
+July 25th 2024
+Added a third recombination option, where each ions' recombination is normalized by the total cross section.
+Fixed bug with calc_line_emissivity where normalization was incorrect. Thank you to Yuki Amano for spotting this bug.
+
+2.1.3
+July 25th 2024
+Added a third recombination option, where each ions' recombination is normalized by the total cross section.
+Fixed bug with calc_line_emissivity where normalization was incorrect. Thank you to Yuki Amano for spotting this bug.
+
+2.1.4
+August 8th 2024
+Replaced deprecated scipy.integrate.cumptrapz with cumulative_trapezoid
+
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
