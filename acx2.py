@@ -22,6 +22,26 @@ FULL_RECOMBINATION = 2
 FULL_NORMALIZED_RECOMBINATION = 3
 __version__="2.1.4"
 
+llistdtype = numpy.dtype({'names':['EPSILON','LAMBDA','ENERGY',\
+                                   'ELEMENT','ION','ION_DRV',\
+                                   'UPPERLEV','LOWERLEV'],\
+                          'formats':[float, float, float, \
+                                     int, int, int,\
+                                     int, int]})
+
+
+llistfulldtype = numpy.dtype({'names':['EPSILON','LAMBDA','ENERGY',\
+                                       'ELEMENT','ION','ION_DRV',\
+                                       'UPPERLEV','LOWERLEV',\
+                                       'UPPERCFG','UPPERSYM',\
+                                       'LOWERCFG','LOWERSYM',\
+                                       'EINSTEIN_A', 'B_RATIO'],\
+                              'formats':[float, float, float, \
+                                         int, int, int,\
+                                         int, int,\
+                                         '|U40','|U40',\
+                                         '|U15','|U15',\
+                                         float, float]})
 
 # This code is for initializing/auto-downloading the data files
 import __init__
@@ -385,7 +405,7 @@ class ACXModel():
     for donor in self.DonorList:
       donor.set_collisiontype(colltype, collunits=collunits)
 
-  def calc_spectrum(self, collvalue, Tbroaden=0, vbroaden=0):
+  def calc_spectrum(self, collvalue, Tbroaden=0, vbroaden=0, ebroaden=0):
     """
     Calculate the spectrum for all the donors, sum.
 
@@ -416,12 +436,66 @@ class ACXModel():
       for donor in self.DonorList:
 
         if retset==True:
-          ret += donor.calc_spectrum(collvalue, Tbroaden, vbroaden)*donor.donorAbund
+          ret += donor.calc_spectrum(collvalue, Tbroaden, vbroaden, ebroaden)*donor.donorAbund
         else:
-          ret = donor.calc_spectrum(collvalue, Tbroaden, vbroaden)*donor.donorAbund
+          ret = donor.calc_spectrum(collvalue, Tbroaden, vbroaden, ebroaden)*donor.donorAbund
           retset=True
 
       return ret
+
+  def calc_linelist(self, collvalue, specrange, specunit='A', byDonor=False, fulldetail=False):
+    """
+    Calculate the spectrum for all the donors, sum.
+
+    PARAMETERS
+    ----------
+    collvalue : float
+      The collision parameter (kev/u or cm/s, depending) to calculate the spectrum
+    specrange : [float, float]
+      Minimum and maximum values for interval in which to search
+    specunit : {'Angstrom','keV'}
+      Units for specrange (default A)
+    byDonor : bool
+      If True, separate the results by donor. Otherwise sum identical lines from different donors
+    fulldetail : bool
+      If True, calls get_full_line_info to fill out the transition information
+      e.g. configurations, quantum numbers.
+
+
+    RETURNS
+    -------
+    linelist : numpy.array
+      Numpy array of lines and emissivity, custom dtype. If byDonor=True, a dict with donor names and these data
+   """
+    retset=False
+
+    if DEBUG:
+      ret = []
+      for donor in self.DonorList:
+        ret.append(donor.calc_spectrum(collvalue, Tbroaden, vbroaden))
+
+      return ret
+    else:
+      if byDonor:
+        ret={}
+      else:
+        ret = numpy.zeros(0, dtype=llistdtype)
+
+      for donor in self.DonorList:
+
+        tmp = donor.calc_linelist(collvalue, specrange, specunit=specunit)
+        tmp['EPSILON'] *=donor.donorAbund
+        if byDonor:
+          ret[self.donor] = tmp # e.g. ret['h'] is the collision with H
+        else:
+          ret=numpy.append(ret,tmp)
+
+
+    if not byDonor:
+        # need to filter/sum duplicates
+      ret = _merge_linelist_duplicates(ret)
+
+    return ret
 
 
   def set_abund(self, abund, elements=None):
@@ -514,6 +588,52 @@ class ACXModel():
 
     return ret
 
+
+
+
+def _merge_linelist_duplicates(llist, keys=['ELEMENT', 'ION','UPPERLEV','LOWERLEV'], sumover='EPSILON'):
+    """
+    Look through the linelists and search for duplicates. Duplicated lines
+    are summed.
+
+    Parameters
+    ----------
+    llist : array(linelist)
+      The list of lines to check
+    keys : list
+      Keys which must be identical to merge
+
+    Returns
+    -------
+    llist_out : array(linelist)
+      The lines after filtering for duplicates.
+    """
+    # sort the data
+    llist =numpy.sort(llist, order=keys)
+    # merge
+    keep = numpy.ones(len(llist), dtype=bool)
+
+    # find each level where the next is for the same transition
+
+    if len(keys)==4:
+      j = numpy.where((llist[1:][keys[0]]==llist[:-1][keys[0]]) &\
+                      (llist[1:][keys[1]]==llist[:-1][keys[1]]) &\
+                      (llist[1:][keys[2]]==llist[:-1][keys[2]]) &\
+                      (llist[1:][keys[3]]==llist[:-1][keys[3]]))[0]
+    elif len(keys)==3:
+      j = numpy.where((llist[1:][keys[0]]==llist[:-1][keys[0]]) &\
+                      (llist[1:][keys[1]]==llist[:-1][keys[1]]) &\
+                      (llist[1:][keys[2]]==llist[:-1][keys[2]]))[0]
+
+    for jj in j:
+      # add the emissivity to the second of the 2
+      llist[sumover][jj+1] += llist[sumover][jj]
+      keep[jj]=False
+
+    # remove all the non-keepers
+    llist_out = llist[keep]
+
+    return llist_out
 
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
@@ -937,7 +1057,7 @@ class ACXDonorModel():
 
 
 
-  def calc_spectrum(self, collparam, Tbroaden, vbroaden):
+  def calc_spectrum(self, collparam, Tbroaden, vbroaden, ebroaden):
     """
     Calculate the spectrum we want
 
@@ -955,21 +1075,20 @@ class ACXDonorModel():
 
     # get the velocity etc
     self.set_collisionparam(collparam)
-
+    self.initialize_CXIonspectrum()
 
     # set up return array for spectrum
     if DEBUG:
       self.emiss_debug = {}
     self.emiss = numpy.zeros(len(self.ebins)-1, dtype=float)
-
+#    print("IONFRAC:", self.ionfrac)
     #print("elements: ", self.elements)
-    for Z in self.elements:
+    for iZ, Z in enumerate(self.elements):
       if self.abund[Z] > 0.0:
-        if not Z in self.spectra.keys():
-          self.spectra[Z]={}
         for z1 in range(2, Z+2):# z1 here is the recombin*ing* ion charge +1
           if self.recombtype == SINGLE_RECOMBINATION:
             ionf = self.ionfrac[Z][z1-1] #ionfrac is indexed from 0, not 1
+#            print("Z=",Z,", z1-1=", z1-1, ", ionf=", ionf)
           elif ((self.recombtype == FULL_RECOMBINATION) | (self.recombtype == FULL_NORMALIZED_RECOMBINATION)):
             ionf = sum(self.ionfrac[Z][z1-1:])
           else:
@@ -977,11 +1096,51 @@ class ACXDonorModel():
           if self.abund[Z]*ionf > 1e-10:
 #            print("Z=%i, z1=%i"%(Z, z1))
 
+            # set the energy bins for the spectrum
+            self.spectra[Z][z1].set_ebins(self.ebins, ebins_checksum=self.ebins_checksum)
+            self.spectra[Z][z1].set_recombtype(self.recombtype)
+
+            if DEBUG:
+              if not Z in self.emiss_debug.keys():
+                self.emiss_debug[Z] = {}
+
+              self.emiss_debug[Z][z1] = self.spectra[Z][z1].calc_spectrum(self.collenergy[Z], self.collvelocity[Z], Tbroaden, vbroaden, ebroaden)
+
+              self.emiss +=  self.emiss_debug[Z][z1] * self.abund[Z] * ionf
+
+            else:
+
+              self.emiss += self.spectra[Z][z1].calc_spectrum(self.collenergy[Z], self.collvelocity[Z], Tbroaden, vbroaden, ebroaden) *\
+                     self.abund[Z] * ionf
+
+
+    return self.emiss
+
+  def initialize_CXIonspectrum(self):
+    """
+    Called to ensure that all the ion spectra exist and are ready to use
+    """
+
+    for iZ, Z in enumerate(self.elements):
+      if self.abund[Z] > 0.0:
+        if not Z in self.spectra.keys():
+          self.spectra[Z]={}
+        for z1 in range(2, Z+2):# z1 here is the recombin*ing* ion charge +1
+          if self.recombtype == SINGLE_RECOMBINATION:
+            ionf = self.ionfrac[Z][z1-1] #ionfrac is indexed from 0, not 1
+
+          elif ((self.recombtype == FULL_RECOMBINATION) |\
+                (self.recombtype == FULL_NORMALIZED_RECOMBINATION)):
+            ionf = sum(self.ionfrac[Z][z1-1:])
+          else:
+            raise ValueError("Invalid recombtype ", self.recombtype)
+          if self.abund[Z]*ionf > 1e-10:
+
 
             if not z1 in self.spectra[Z].keys():
               # Initialize new CXIonSpectrum object for this ion
               resolution, ihdu = self.find_crosssection_type(Z,z1)
-#              print("Z, z1, resolution, ihdu", Z, z1, resolution, ihdu)
+
               if resolution=='ACX1':
                 self.spectra[Z][z1] = CXIonSpectrum_ACX1(Z,z1,ihdu, \
                   self.linedata, self.contdata,\
@@ -1005,25 +1164,66 @@ class ACXDonorModel():
                   receivermass = self.crosssectiondata[ihdu+2].header['RECMASS'],\
                   donormass = self.crosssectiondata['INDEX'].header['DONMASS'])
 
-            # set the energy bins for the spectrum
-            self.spectra[Z][z1].set_ebins(self.ebins, ebins_checksum=self.ebins_checksum)
+  def calc_linelist(self, collparam, specrange, specunit='A'):
+    """
+    Calculate the spectrum we want
+
+    PARAMETERS
+    ----------
+
+    collparam : float
+      Collision energy, or velocity, as determined by set_collisiontype, in kev/u,  cm/s or km/s
+    specrange : [float, float]
+      Minimum and maximum values for interval in which to search
+    specunit : {'Angstrom','keV'}
+      Units for specrange (default A)
+
+    RETURNS
+    -------
+    linelist : numpy.array
+      Numpy array of lines and emissivity, custom dtype
+    """
+
+    # get the velocity etc
+    self.set_collisionparam(collparam)
+
+
+    # set up return array for spectrum
+#    if DEBUG:
+#      self.emiss_debug = {}
+#    self.emiss = numpy.zeros(len(self.ebins)-1, dtype=float)
+
+    self.initialize_CXIonspectrum()
+
+    # zero out the line list
+    self.linelist = numpy.zeros(0, dtype = llistdtype)
+
+    for iZ, Z in enumerate(self.elements):
+      if self.abund[Z] > 0.0:
+        for z1 in range(2, Z+2):# z1 here is the recombin*ing* ion charge +1
+          if self.recombtype == SINGLE_RECOMBINATION:
+            ionf = self.ionfrac[Z][z1-1] #ionfrac is indexed from 0, not 1
+
+          elif ((self.recombtype == FULL_RECOMBINATION) |\
+                (self.recombtype == FULL_NORMALIZED_RECOMBINATION)):
+            ionf = sum(self.ionfrac[Z][z1-1:])
+          else:
+            raise ValueError("Invalid recombtype ", self.recombtype)
+          if self.abund[Z]*ionf > 1e-10:
+
             self.spectra[Z][z1].set_recombtype(self.recombtype)
 
-            if DEBUG:
-              if not Z in self.emiss_debug.keys():
-                self.emiss_debug[Z] = {}
-
-              self.emiss_debug[Z][z1] = self.spectra[Z][z1].calc_spectrum(self.collenergy[Z], self.collvelocity[Z], Tbroaden, vbroaden)
-
-              self.emiss +=  self.emiss_debug[Z][z1] * self.abund[Z] * ionf
-
-            else:
-
-              self.emiss += self.spectra[Z][z1].calc_spectrum(self.collenergy[Z], self.collvelocity[Z], Tbroaden, vbroaden) *\
-                     self.abund[Z] * ionf
+            tmp = self.spectra[Z][z1].calc_linelist(\
+                                     self.collenergy[Z], \
+                                     self.collvelocity[Z], \
+                                     specrange, specunit=specunit)
+            tmp['EPSILON'] *= self.abund[Z] * ionf
+            self.linelist=numpy.append(self.linelist,tmp)
 
 
-    return self.emiss
+
+    return self.linelist
+
 
   def calc_line_emissivity(self, Z, z1_in, up, lo, collvalue=None):
     """
@@ -1058,71 +1258,39 @@ class ACXDonorModel():
            'Epsilon': 0.0,
            'up': up,
            'lo': lo}
+
+    self.initialize_CXIonspectrum()
+
     if self.abund[Z] > 0.0:
-        if not Z in self.spectra.keys():
-          self.spectra[Z]={}
-        for z1 in [z1_ion]:# z1 here is the recombin*ing* ion charge +1
-          if self.recombtype == SINGLE_RECOMBINATION:
-            ionf = self.ionfrac[Z][z1-1]
-          elif self.recombtype == FULL_RECOMBINATION:
-            ionf = sum(self.ionfrac[Z][z1-1:])
-          else:
-            raise ValueError("Invalid recombtype ", self.recombtype)
-          if self.abund[Z]*ionf > 1e-40: #ionfrac is indexed from 0, not 1
-#            print("Z=%i, z1=%i"%(Z, z1))
-
-
-            if not z1 in self.spectra[Z].keys():
-              # Initialize new CXIonSpectrum object for this ion
-              resolution, ihdu = self.find_crosssection_type(Z,z1)
-
-              # HERE WE ADD IN THE EMISSIVITY RETURN INSTEAD OF THE SPECTRUM
-
-              if resolution=='ACX1':
-                self.spectra[Z][z1] = CXIonSpectrum_ACX1(Z,z1,ihdu, \
-                  self.linedata, self.contdata,\
-                  acxmodel = self.acxmodel,\
-                  donor = self.donor,\
-                  receivermass = pyatomdb.atomic.Z_to_mass(Z),\
-                  donormass = self.crosssectiondata['INDEX'].header['DONMASS'])
-
-
-              elif resolution=='N':
-                self.spectra[Z][z1] = CXIonSpectrum_N(Z,z1, self.crosssectiondata[ihdu+2].data, \
-                  self.linedata, self.contdata,\
-                  donor = self.crosssectiondata['INDEX'].header['DONMASS'],\
-                  receivermass = self.crosssectiondata[ihdu+2].header['RECMASS'],\
-                  donormass = self.crosssectiondata['INDEX'].header['DONMASS'])
-
-              elif resolution=='NLS':
-                self.spectra[Z][z1] = CXIonSpectrum_NLS(Z,z1, self.crosssectiondata[ihdu+2].data, \
-                  self.linedata, self.contdata,\
-                  donor = self.crosssectiondata['INDEX'].header['DONMASS'],\
-                  receivermass = self.crosssectiondata[ihdu+2].header['RECMASS'],\
-                  donormass = self.crosssectiondata['INDEX'].header['DONMASS'])
-
+      if not Z in self.spectra.keys():
+        self.spectra[Z]={}
+      for z1 in [z1_ion]:# z1 here is the recombin*ing* ion charge +1
+        if self.recombtype == SINGLE_RECOMBINATION:
+          ionf = self.ionfrac[Z][z1-1]
+        elif self.recombtype == FULL_RECOMBINATION:
+          ionf = sum(self.ionfrac[Z][z1-1:])
+        else:
+          raise ValueError("Invalid recombtype ", self.recombtype)
+        if self.abund[Z]*ionf > 1e-40: #ionfrac is indexed from 0, not 1
+#          print("Z=%i, z1=%i"%(Z, z1))
             # set the energy bins for the spectrum
-            self.spectra[Z][z1].set_ebins(self.ebins, ebins_checksum=self.ebins_checksum)
+          self.spectra[Z][z1].set_ebins(self.ebins, ebins_checksum=self.ebins_checksum)
 
-            if DEBUG:
-              if not Z in self.emiss_debug.keys():
-                self.emiss_debug[Z] = {}
+          if DEBUG:
+            if not Z in self.emiss_debug.keys():
+              self.emiss_debug[Z] = {}
 
 #              self.emiss_debug[Z][z1] = self.spectra[Z][z1].calc_spectrum(self.ebins, self.collenergy[Z], self.collvelocity[Z], self.linedata, self.contdata, self.acxmodel, Tbroaden, vbroaden)
-              self.emiss_debug[Z][z1] = self.spectra[Z][z1].calc_spectrum(self.collenergy[Z], self.collvelocity[Z], Tbroaden, vbroaden)
+            self.emiss_debug[Z][z1] = self.spectra[Z][z1].calc_spectrum(self.collenergy[Z], self.collvelocity[Z], Tbroaden, vbroaden, ebroaden)
 
-              self.emiss +=  self.emiss_debug[Z][z1] * self.abund[Z] * ionf
+            self.emiss +=  self.emiss_debug[Z][z1] * self.abund[Z] * ionf
 
-            else:
-              line_emissivity = self.spectra[Z][z1].calc_line_emissivity(self.collenergy[Z], self.collvelocity[Z], up, lo)
-              ret['Epsilon'] +=line_emissivity['Epsilon']* self.abund[Z] * ionf
-              if line_emissivity['Lambda']>0:
-                ret['Lambda']=line_emissivity['Lambda']
+          else:
+            line_emissivity = self.spectra[Z][z1].calc_line_emissivity(self.collenergy[Z], self.collvelocity[Z], up, lo)
+            ret['Epsilon'] +=line_emissivity['Epsilon']* self.abund[Z] * ionf
+            if line_emissivity['Lambda']>0:
+              ret['Lambda']=line_emissivity['Lambda']
 
-    #ret = {'Lambda': line_emissivity['Lambda'],
-           #'Epsilon': emissivity,
-           #'up': line_emissivity['up'],
-           #'lo': line_emissivity['lo']}
     return(ret)
 
 
@@ -1676,7 +1844,63 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
 #    self.set_acxmodel=acxmodel
 
 #  def calc_spectrum(self, ebins, collenergy, collvelocity, linedata, contdata, acxmodel, Tbroaden, vbroaden):
-  def calc_spectrum(self, collenergy, collvelocity, Tbroaden, vbroaden):
+  def calc_crosssection(self, collenergy):
+    """
+    Calculate cross sections
+    """
+#    +=====+===================+==================================+
+#    |Value| n distribution    | l, L distribution                |
+#    +-----+-------------------+----------------------------------+                                                                               |
+#    |  1  | one n shell       | even distribution by  l.         |
+#    |  2  | one n shell       | statistical distribution by l.   |
+#    |  3  | one n shell       | Landau-Zener distribution by  l. |
+#    |  4  | one n shell       | Separable distribution by l.     |
+#    |  5  | weighted 2 shells | even distribution by  l.         |
+#    |  6  | weighted 2 shells | statistical distribution by l.   |
+#    |  7  | weighted 2 shells | Landau-Zener distribution by l.  |
+#    |  8  | weighted 2 shells | Separable distribution by l.     |
+#    +-----+-------------------+----------------------------------+
+    q = 1.0*(self.z1-1)
+    Ip_d =self.Ip_donor
+    nprime = q *( ((1000*pyatomdb.const.RYDBERG/Ip_d)**0.5) * \
+                  (( 1 + (q-1.0)/(2*q)**0.5)**-0.5))
+
+
+    l = -1 * (self.acxmodel%4)
+
+    # if l = -4, this returns 0. Correct back to -4
+    if l==0: l=-4
+
+    if 1 <= self.acxmodel <=4:
+
+        # need to do just 1 n shell, the closest.
+      n = [int(numpy.round(nprime))]
+      nfrac=[1.0]
+    else:
+      n = [int(numpy.floor(nprime)), int(numpy.ceil(nprime))]
+      nfrac = [1-(nprime%1), nprime%1]
+
+    #create array to hold nfrac in same slot as choosen n l s
+    capture_frac = numpy.zeros(len(self.n), dtype = float)
+
+    for b in range(len(n)):
+      for k,item in enumerate(self.n):
+        if self.n[k] == n[b] and self.l[k] == l:
+          capture_frac[k] = nfrac[b]
+
+
+
+    ret = {}
+    ret['n'] = self.n
+    ret['l'] = self.l
+    ret['S'] = numpy.zeros(len(self.n), dtype=int)
+    ret['S'][:] = -1
+    ret['sigma'] = capture_frac*UNIVERSAL_CX_CROSSSECTION
+    ret['sigma_total'] = sum(capture_frac) # should be UNIVERSAL_CX_CROSSSECTION
+
+    return(ret)
+
+  def calc_spectrum(self, collenergy, collvelocity, Tbroaden, vbroaden, ebroaden):
     """
     Calculate the spectrum of the data
 
@@ -1723,38 +1947,44 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
 
     # job is to create a single unified return.
 
-    q = 1.0*(self.z1-1)
-    Ip_d =self.Ip_donor
-    nprime = q *( ((1000*pyatomdb.const.RYDBERG/Ip_d)**0.5) * \
-                  (( 1 + (q-1.0)/(2*q)**0.5)**-0.5))
+    # q = 1.0*(self.z1-1)
+    # Ip_d =self.Ip_donor
+    # nprime = q *( ((1000*pyatomdb.const.RYDBERG/Ip_d)**0.5) * \
+                  # (( 1 + (q-1.0)/(2*q)**0.5)**-0.5))
 
-    l = -1 * (self.acxmodel%4)
-    # if l = -4, this returns 0. Correct
-    if l==0: l=-4
+    # l = -1 * (self.acxmodel%4)
+    # # if l = -4, this returns 0. Correct
+    # if l==0: l=-4
 
-      # calculate n shell distribution
-    if 1 <= self.acxmodel <=4:
+      # # calculate n shell distribution
+    # if 1 <= self.acxmodel <=4:
 
-        # need to do just 1 n shell, the closest.
-      n = [int(numpy.round(nprime))]
-      nfrac=[1.0]
-    else:
-      n = [int(numpy.floor(nprime)), int(numpy.ceil(nprime))]
-      nfrac = [1-(nprime%1), nprime%1]
+        # # need to do just 1 n shell, the closest.
+      # n = [int(numpy.round(nprime))]
+      # nfrac=[1.0]
+    # else:
+      # n = [int(numpy.floor(nprime)), int(numpy.ceil(nprime))]
+      # nfrac = [1-(nprime%1), nprime%1]
 
-    #create array to hold nfrac in same slot as choosen n l s
-    capture_frac = numpy.zeros(len(self.n), dtype = float)
+    # #create array to hold nfrac in same slot as choosen n l s
+    # capture_frac = numpy.zeros(len(self.n), dtype = float)
+# #    print('n',n, 'nfrac:', nfrac)
+    # for b in range(len(n)):
+      # for k,item in enumerate(self.n):
+        # if self.n[k] == n[b] and self.l[k] == l:
+          # capture_frac[k] = nfrac[b]
 
-    for b in range(len(n)):
-      for k,item in enumerate(self.n):
-        if self.n[k] == n[b] and self.l[k] == l:
-          capture_frac[k] = nfrac[b]
+# #    print('capture_frac:', capture_frac)
 
-    if len(capture_frac)==0:
+
+    cross_section = self.calc_crosssection(collenergy)
+    Coutarraynl = cross_section['sigma']
+
+    if len(Coutarraynl)==0:
       new_epsilon = numpy.zeros(len(self.ionlinedata))
 
     else:
-      new_epsilon = numpy.sum(self.ionlinedata['Epsilon']*capture_frac,1)
+      new_epsilon = numpy.sum(self.ionlinedata['Epsilon']*Coutarraynl,1)
 
     #create array to return spectrum
 
@@ -1764,7 +1994,8 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
     spec = numpy.zeros(len(self.ebins)-1, dtype=float)
 
     if ((Tbroaden <= 0.0) & \
-          (vbroaden <=0.0)):
+          (vbroaden <=0.0) &\
+          (ebroaden <=0.0)):
 
       if len(self.ionlinedata) > 0:
         #turn line wavelengths into energies
@@ -1796,7 +2027,13 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
       else:
         vb = (vbroaden * 1e5)**2
 
-      wcoeff = numpy.sqrt(Tb+vb) / (pyatomdb.const.LIGHTSPEED*1e2)
+      if ebroaden <0:
+        ebroaden = 0.0
+        eb=0.0
+      else:
+        eb = ebroaden**2
+
+      wcoeff = numpy.sqrt(Tb+vb+eb) / (pyatomdb.const.LIGHTSPEED*1e2)
 
       elines = en[ind]
       n_e = new_epsilon[ind]
@@ -1831,26 +2068,94 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
     #add to spectrum for the capture_frac n l s values
     if len(self.ioncontdata) > 0:
       for p,item in enumerate(self.ioncontdata):
-        if capture_frac[p] > 0.0:
+        if Coutarraynl[p] > 0.0:
 
           if self.ioncontdata['N_cont'][p] > 2:
             ncont = self.ioncontdata['N_Cont'][p] #shorten array
-            spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Cont'][p][:ncont], self.ioncontdata['Continuum'][p][:ncont]) * (capture_frac[p])
+            spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Cont'][p][:ncont], self.ioncontdata['Continuum'][p][:ncont]) * (Coutarraynl[p])
           if self.ioncontdata['N_Pseudo'][p] > 2:
             npse = self.ioncontdata['N_Pseudo'][p]
-            spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Pseudo'][p][:npse], self.ioncontdata['Pseudo'][p][:npse]) * (capture_frac[p])
+            spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Pseudo'][p][:npse], self.ioncontdata['Pseudo'][p][:npse]) * (Coutarraynl[p])
 
 # This line for renormalization
-    if self.recombtype != FULL_NORMALIZED_RECOMBINATION:
-      spec = spec * UNIVERSAL_CX_CROSSSECTION
-    else:
-      print("rescaling spectrum by %e"%(UNIVERSAL_CX_CROSSSECTION))
+#    if self.recombtype != FULL_NORMALIZED_RECOMBINATION:
+#      spec = spec * UNIVERSAL_CX_CROSSSECTION
+#    else:
+#      print("rescaling spectrum by %e"%(UNIVERSAL_CX_CROSSSECTION))
 
     self.ebins_checksum = self.ebins_checksum
     self.spectrum = spec
     self.spectrum_ready = True
 
     return self.spectrum * collvelocity
+
+  def calc_linelist(self, collenergy, collvelocity, specrange, specunit='A'):
+    """
+    Calculate the spectrum of the data
+
+    PARAMETERS
+    ----------
+    ebins : array(float)
+      The energy bins (in keV) to calcualte the spectrum on
+    collenergy : flaot
+      The collision energy (keV/amu)
+    collvelocity : float
+      The velocity of the center of mass (cm/s)
+    specrange : [float, float]
+      Minimum and maximum values for interval in which to search
+    specunit : {'Angstrom','keV'}
+      Units for specrange (default A)
+
+
+
+
+    RETURNS
+    -------
+    emissivity : array(float)
+      Emissivity * velocity in photons cm4 s-2
+
+    """
+#    +=====+===================+==================================+
+#    |Value| n distribution    | l, L distribution                |
+#    +-----+-------------------+----------------------------------+                                                                               |
+#    |  1  | one n shell       | even distribution by  l.         |
+#    |  2  | one n shell       | statistical distribution by l.   |
+#    |  3  | one n shell       | Landau-Zener distribution by  l. |
+#    |  4  | one n shell       | Separable distribution by l.     |
+#    |  5  | weighted 2 shells | even distribution by  l.         |
+#    |  6  | weighted 2 shells | statistical distribution by l.   |
+#    |  7  | weighted 2 shells | Landau-Zener distribution by l.  |
+#    |  8  | weighted 2 shells | Separable distribution by l.     |
+#    +-----+-------------------+----------------------------------+
+
+    # convert input wavelength or energy range to angstroms
+    wave = pyatomdb.util.convert_spec(specrange, specunit, 'A')
+
+    cross_section = self.calc_crosssection(collenergy)
+    Coutarraynl = cross_section['sigma']
+
+    if len(Coutarraynl)==0:
+      new_epsilon = numpy.zeros(len(self.ionlinedata))
+
+    else:
+      new_epsilon = numpy.sum(self.ionlinedata['Epsilon']*Coutarraynl,1)
+
+    #create array to return spectrum
+    l = numpy.zeros(len(self.ionlinedata), dtype=llistdtype)
+
+    if len(self.ionlinedata) > 0:
+
+      l['EPSILON'] = new_epsilon * collvelocity
+      l['LAMBDA'] =  self.ionlinedata['LAMBDA']
+      l['ENERGY'] = pyatomdb.const.HC_IN_KEV_A/l['LAMBDA']
+      l['ELEMENT'] = self.ionlinedata['ELEMENT']
+      l['ION'] = self.ionlinedata['ION']
+      l['ION_DRV'] = self.ionlinedata['ION_DRV']
+      l['UPPERLEV'] = self.ionlinedata['UPPERLEV']
+      l['LOWERLEV'] = self.ionlinedata['LOWERLEV']
+
+    self.linelist = l[(l['LAMBDA']>=wave[0]) & (l['LAMBDA']<=wave[1])]
+    return self.linelist
 
 
 
@@ -2021,7 +2326,7 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
 
 
 
-  def calc_spectrum(self, collenergy, collvelocity, Tbroaden, vbroaden):
+  def calc_spectrum(self, collenergy, collvelocity, Tbroaden, vbroaden, ebroaden):
     """
     Calculate the spectrum of the data
 
@@ -2168,6 +2473,62 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
       self.spectrum /= cross_section['sigma_total']
     return self.spectrum * collvelocity
 
+
+  def calc_linelist(self, collenergy, collvelocity, specrange, specunit='A'):
+    """
+    Calculate the spectrum of the data
+
+    PARAMETERS
+    ----------
+    ebins : array(float)
+      The energy bins (in keV) to calcualte the spectrum on
+    collenergy : flaot
+      The collision energy (keV/amu)
+    collvelocity : float
+      The velocity of the center of mass (cm/s)
+    specrange : [float, float]
+      Minimum and maximum values for interval in which to search
+    specunit : {'Angstrom','keV'}
+      Units for specrange (default A)
+
+
+
+
+    RETURNS
+    -------
+    emissivity : array(float)
+      Emissivity * velocity in photons cm4 s-2
+
+    """
+    # convert input wavelength or energy range to angstroms
+    wave = pyatomdb.util.convert_spec(specrange, specunit, 'A')
+
+    cross_section = self.calc_crosssection(collenergy)
+    Coutarraynl = cross_section['sigma']
+
+    if len(Coutarraynl)==0:
+      new_epsilon = numpy.zeros(len(self.ionlinedata))
+
+    else:
+      new_epsilon = numpy.sum(self.ionlinedata['Epsilon']*Coutarraynl,1)
+
+    #create array to return spectrum
+    l = numpy.zeros(len(self.ionlinedata), dtype=llistdtype)
+
+    if len(self.ionlinedata) > 0:
+
+      l['EPSILON'] = new_epsilon * collvelocity
+      l['LAMBDA'] =  self.ionlinedata['LAMBDA']
+      l['ENERGY'] = pyatomdb.const.HC_IN_KEV_A/l['LAMBDA']
+      l['ELEMENT'] = self.ionlinedata['ELEMENT']
+      l['ION'] = self.ionlinedata['ION']
+      l['ION_DRV'] = self.ionlinedata['ION_DRV']
+      l['UPPERLEV'] = self.ionlinedata['UPPERLEV']
+      l['LOWERLEV'] = self.ionlinedata['LOWERLEV']
+
+    self.linelist = l[(l['LAMBDA']>=wave[0]) & (l['LAMBDA']<=wave[1])]
+
+    return self.linelist
 
   def calc_line_emissivity(self, collenergy, collvelocity, up, lo):
 
@@ -2348,7 +2709,7 @@ class CXIonSpectrum_N(CXIonSpectrum):
 
 
 
-  def calc_spectrum(self, collenergy, collvelocity, Tbroaden, vbroaden):
+  def calc_spectrum(self, collenergy, collvelocity, Tbroaden, vbroaden, ebroaden):
     """
     Calculate the spectrum of the data
 
@@ -2499,6 +2860,63 @@ class CXIonSpectrum_N(CXIonSpectrum):
 
         self.spectrum/=cross_section['sigma_total']
     return self.spectrum * collvelocity
+
+
+  def calc_linelist(self, collenergy, collvelocity, specrange, specunit='A'):
+    """
+    Calculate the spectrum of the data
+
+    PARAMETERS
+    ----------
+    ebins : array(float)
+      The energy bins (in keV) to calcualte the spectrum on
+    collenergy : flaot
+      The collision energy (keV/amu)
+    collvelocity : float
+      The velocity of the center of mass (cm/s)
+    specrange : [float, float]
+      Minimum and maximum values for interval in which to search
+    specunit : {'Angstrom','keV'}
+      Units for specrange (default A)
+
+
+
+
+    RETURNS
+    -------
+    emissivity : array(float)
+      Emissivity * velocity in photons cm4 s-2
+
+    """
+    # convert input wavelength or energy range to angstroms
+    wave = pyatomdb.util.convert_spec(specrange, specunit, 'A')
+
+    cross_section = self.calc_crosssection(collenergy)
+    Coutarraynl = cross_section['sigma']
+
+    if len(Coutarraynl)==0:
+      new_epsilon = numpy.zeros(len(self.ionlinedata))
+
+    else:
+      new_epsilon = numpy.sum(self.ionlinedata['Epsilon']*Coutarraynl,1)
+
+    #create array to return spectrum
+    l = numpy.zeros(len(self.ionlinedata), dtype=llistdtype)
+
+    if len(self.ionlinedata) > 0:
+
+      l['EPSILON'] = new_epsilon * collvelocity
+      l['LAMBDA'] =  self.ionlinedata['LAMBDA']
+      l['ENERGY'] = pyatomdb.const.HC_IN_KEV_A/l['LAMBDA']
+      l['ELEMENT'] = self.ionlinedata['ELEMENT']
+      l['ION'] = self.ionlinedata['ION']
+      l['ION_DRV'] = self.ionlinedata['ION_DRV']
+      l['UPPERLEV'] = self.ionlinedata['UPPERLEV']
+      l['LOWERLEV'] = self.ionlinedata['LOWERLEV']
+
+    self.linelist = l[(l['LAMBDA']>=wave[0]) & (l['LAMBDA']<=wave[1])]
+
+    return self.linelist
 
 
   def calc_line_emissivity(self, collenergy, collvelocity, up, lo):
@@ -2710,7 +3128,7 @@ to recombination into this shell.
 
 
 
-  def calc_spectrum(self, ebins, ebins_checksum, Tbroaden, vbroaden):
+  def calc_spectrum(self, ebins, ebins_checksum, Tbroaden, vbroaden, ebroaden):
     import scipy,scipy.integrate
 
     if self.ebins_checksum == ebins_checksum:
@@ -2819,7 +3237,7 @@ class DummyCXShellSpectrum():
     self.s = s
 
 
-  def calc_spectrum(self, ebins, ebins_checksum, Tbroaden, vbroaden):
+  def calc_spectrum(self, ebins, ebins_checksum, Tbroaden, vbroaden, ebroaden):
     """
     Return zeros
 
@@ -2917,6 +3335,65 @@ class _Gaussian_CDF():
     return ret
 
 
+def lvdat_to_termsymb(d):
+  LLIST = 'SPDFGHIJKLMNOQRTUVWZYZabcdefghijklmnopqrstuvwxyz'
+
+  s2p1 = int(d['S_QUAN']*2 +1)
+  ssym = "%i"%(s2p1)
+  lquan = d['L_QUAN']
+
+
+  if lquan ==-1:
+    lsym = '-1'
+  else:
+    lsym = LLIST[lquan]
+
+  j2 = d['LEV_DEG']-1
+  if j2%2 == 0:
+    jsym = '%i'%(j2/2)
+  else:
+    jsym = '%i/2'%(j2)
+  dout = "%s(%s)%s"%(ssym, lsym, jsym)
+
+  return(dout)
+
+def get_full_line_info(linelist, filemap="$ATOMDB/filemap_acx", atomdbroot="$ATOMDB"):
+  """
+  Gets the data for the full linelist
+  """
+
+
+  datacache = {}
+  settings = {}
+  settings['filemap'] = filemap
+  settings['atomdbroot']=atomdbroot
+
+  dout = numpy.zeros(len(linelist), dtype = llistfulldtype)
+
+  for k in ['EPSILON','LAMBDA','ENERGY',\
+                                   'ELEMENT','ION','ION_DRV',\
+                                   'UPPERLEV','LOWERLEV']:
+    dout[k] =linelist[k]
+
+  for i, l in enumerate(linelist):
+    lvdat = pyatomdb.atomdb.get_data(l['ELEMENT'], l['ION'], 'LV', datacache=datacache, \
+             settings=settings)
+
+    ladat = pyatomdb.atomdb.get_data(l['ELEMENT'], l['ION'], 'LA', datacache=datacache, \
+             settings=settings)
+
+    dout[i]['UPPERCFG'] = lvdat[1].data['ELEC_CONFIG'][l['UPPERLEV']-1]
+    dout[i]['UPPERSYM'] = lvdat_to_termsymb(lvdat[1].data[l['UPPERLEV']-1])
+
+    dout[i]['LOWERCFG'] = lvdat[1].data['ELEC_CONFIG'][l['LOWERLEV']-1]
+    dout[i]['LOWERSYM'] = lvdat_to_termsymb(lvdat[1].data[l['LOWERLEV']-1])
+
+    j = numpy.where( (ladat[1].data['UPPER_LEV']==l['UPPERLEV']) &\
+                     (ladat[1].data['LOWER_LEV']==l['LOWERLEV']))[0][0]
+    dout[i]['EINSTEIN_A'] = ladat[1].data['EINSTEIN_A'][j]
+    dout[i]['B_RATIO'] = ladat[1].data['EINSTEIN_A'][j]/lvdat[1].data['ARAD_TOT'][l['UPPERLEV']-1]
+
+  return(dout)
 
 
 def test():
