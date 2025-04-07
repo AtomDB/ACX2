@@ -9,7 +9,7 @@ import time
 import urllib
 import wget
 
-__version__="2.2.0"
+__version__="2.3.0"
 
 
 #-------------------------------------------------------------------------------
@@ -109,15 +109,16 @@ else:
           os.path.expandvars('$ATOMDB'))
     install='yes'
 
-  a=curl.Curl()
-  version=a.get('%s/releases/LATEST_ACX'%(pyatomdb.const.FTPPATH))[:-1].decode(encoding='ascii')
-  userprefs = pyatomdb.util.load_user_prefs(adbroot=adbroot)
-  userid = userprefs['USERID']
-  userprefs['LASTCXVERSIONCHECK'] = time.time()
-  userprefs = pyatomdb.util.write_user_prefs(userprefs, adbroot=adbroot)
 
   if install=='yes':
-      download_acx2_emissivity_files(os.environ.get('ATOMDB'), userid, version)
+    a=curl.Curl()
+    version=a.get('%s/releases/LATEST_ACX'%(pyatomdb.const.FTPPATH))[:-1].decode(encoding='ascii')
+    userprefs = pyatomdb.util.load_user_prefs(adbroot=adbroot)
+    userid = userprefs['USERID']
+    userprefs['LASTCXVERSIONCHECK'] = time.time()
+    userprefs = pyatomdb.util.write_user_prefs(userprefs, adbroot=adbroot)
+
+    download_acx2_emissivity_files(os.environ.get('ATOMDB'), userid, version)
 
 #  elif not os.path.exists(os.path.expandvars("$ATOMDB/userdata")):
 #    install = ''

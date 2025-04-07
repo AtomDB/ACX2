@@ -102,12 +102,13 @@ To load the ACX2 model into XSPEC, acx2_xspec module contains what you need. Fro
 Once this is done, the data will load.
 
 
-Four different models are loaded:
+Five different models are loaded:
 
 - acx2 : Emission from CX with the 14 main elements. Abundance is tied between all elements (so there is only 1 abundance keyword). Analogous to the apec model.
 - vacx2 : Emission from CX with the 14 main elements. Abundance is free to vary between all the elements (though it starts frozen). Analagous to the vapec model.
 - vvacx2 : Emission from 27 elements, H through Ni excluding Co. Abundance is free to vary between all the elements.
 - acx2oneion : Emission from CX with one specific ion, specified with element and ion, where ion is the ion charge plus 1. 
+- vacxnei : As with vacx2, but with the initial ionization balance set from a non-equilibrium plasma
 
 
 .. note::
@@ -366,5 +367,10 @@ Replaced deprecated scipy.integrate.cumptrapz with cumulative_trapezoid
 2.2.0
 February 13th 2025
 Added a new function to list the lines in a wavelength region and then get the quantum numbers. See examples/test_acx_linelist.py
+
+2.3.0
+April 7th 2025
+Added a new model, vacxnei, for non-equilibrium plasma. See examples/test_acx_linelist.py
+
 
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
