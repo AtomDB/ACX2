@@ -637,9 +637,6 @@ class ACXModel():
     """
 
     ionfrac = {}
-    print('kT', kT)
-    print('kT_init', kT_init)
-    print('tau', tau)
     for Z in self.elements:
 #        if not Z in self.ionfrac.keys():
           ionfrac[Z] = pyatomdb.apec.return_ionbal(Z, kT,\
