@@ -6,7 +6,7 @@ import acx2 as acx2model
 # CHANGE THESE FILE PATHS TO REFLECT YOUR SYSTEM
 
 # The code will automatically download the ACX2 data files into your
-# $ATOMDB directory. If you wish to use non-standard files, 
+# $ATOMDB directory. If you wish to use non-standard files,
 # specify them here
 
 
@@ -110,6 +110,32 @@ oneacx2Info = ("$element                14",
                "tbroad      \"keV\"     0.0 0.0 0.0 100.0 100.0 -0.01",
                "Redshift      \"\"      0.0 -0.999 -0.999 10.0 10.0 -0.01")
 
+vacxneiInfo = ("temperature   \"keV\"   0.5 0.00862 0.00862 86. 86. 0.01",
+               "kT_init       \"keV\"   1.0 0.00862 0.00862 86. 86. 0.01",
+               "collnpar    \"kev/u,km/s\" 1.0 0.01 0.2 100. 1000. 0.01",
+               "$collntype              1",
+               "$acxmodel               8",
+               "$recombtype             1",
+               "Hefrac        \"\"      0.09 0.0 0.0 1.0 1.0 -0.01",
+               "H             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "He            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "C             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "N             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "O             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "Ne            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "Mg            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "Al            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "Si            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "S             \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "Ar            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "Ca            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "Fe            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "Ni            \"\"      1.0 0.0 0.0 10.0 10.0 -0.01",
+               "Tau         \"s/cm^3\"   1e11 1e8 1e8 1e8 5e13 5e13",
+               "vbroad      \"km/s\"    0.0 0.0 0.0 10000.0 10000.0 -0.01",
+               "tbroad      \"keV\"     0.0 0.0 0.0 100.0 100.0 -0.01",
+               "Redshift      \"\"      0.0 -0.999 -0.999 10.0 10.0 -0.01")
+
 
 def acx2(engs, params, flux):
 
@@ -138,7 +164,7 @@ def acx2(engs, params, flux):
     m = xspec.Model('acx2')
   """
   offest = 0
-  
+
   nparam = len(params)
   modeltype=False
   if nparam == len(acx2Info)+1:
@@ -149,6 +175,8 @@ def acx2(engs, params, flux):
     modeltype = 'vvacx2'
   elif nparam == len(oneacx2Info)+1:
     modeltype = 'oneacx2'
+  elif nparam == len(vacxneiInfo)+1:
+    modeltype = 'vacxnei'
   else:
     print(modeltype, nparam, len(acx2Info), len(vacx2Info), len(vvacx2Info))
 
@@ -156,7 +184,7 @@ def acx2(engs, params, flux):
   ebins = numpy.array(engs)
 
   # vacx model has the 14 main elements
-  if modeltype in ['acx2', 'vacx2']:
+  if modeltype in ['acx2', 'vacx2', 'vacxnei']:
     elements = [1,2,6,7,8,10,12,13,14,16,18,20,26,28]
   elif modeltype == 'vvacx2':
     elements = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,28]
@@ -165,9 +193,10 @@ def acx2(engs, params, flux):
     Z = int(params[0])
     ion = int(params[1])
 
-    
+
   offset = 0
   if modeltype=='oneacx2': offset = 1
+  if modeltype=='vacxnei': offset = 1
 
   if modeltype == 'acx2':
   # set abundance vector
@@ -182,6 +211,9 @@ def acx2(engs, params, flux):
   elif modeltype == 'oneacx2':
     abund = numpy.array(params[6+offset])
     acx2_acxmodelobject.set_abund(abund, elements=elements)
+  elif modeltype == 'vacxnei':
+    abund = numpy.array(params[6+offset:20+offset])
+    acx2_acxmodelobject.set_abund(abund, elements=elements)
 
 
   if len(acx2_acxmodelobject.DonorList)==0:
@@ -189,9 +221,9 @@ def acx2(engs, params, flux):
     acx2_acxmodelobject.add_donor('H', elements=elements)
 
     acx2_acxmodelobject.add_donor('He', elements=elements)
-  
+
 #  acx2_acxmodelobject.set_abund(abund)
-  
+
   # get redshift
   redshift = float(params[-2])
 
@@ -207,6 +239,12 @@ def acx2(engs, params, flux):
 #    ionfrac[elements[0]] = numpy.zeros(elements[0]+1, dtype=float)
 #   ionfrac[elements[0]][ion]=1.0
     acx2_acxmodelobject.set_ionfrac(ionfrac)
+
+  elif modeltype == 'vacxnei':
+    kT = params[0]
+    kT_init = params[1]
+    tau = params[-5]
+    acx2_acxmodelobject.calc_ionfrac_nonequilibrium(kT, kT_init, tau)
 
 
   else:
@@ -232,7 +270,7 @@ def acx2(engs, params, flux):
 
   acx2_acxmodelobject.set_collisiontype(cp, cpunits)
 
-  
+
 
   # get the spectrum
   spec = acx2_acxmodelobject.calc_spectrum(params[1+offset], Tbroaden=params[-3], vbroaden=params[-4])
@@ -261,11 +299,13 @@ def vacx2(engs, params, flux):
 
 def vvacx2(engs, params, flux):
   return acx2(engs, params, flux)
-  
+
 
 def oneacx2(engs, params, flux):
   return acx2(engs, params, flux)
 
+def vacxnei(engs, params, flux):
+  return acx2(engs, params, flux)
 
 
 #--def vacx2(engs, params, flux):
@@ -495,8 +535,9 @@ xspec.AllModels.addPyMod(vvacx2, vvacx2Info, 'add')
 xspec.AllModels.addPyMod(vacx2, vacx2Info, 'add')
 xspec.AllModels.addPyMod(acx2, acx2Info, 'add')
 xspec.AllModels.addPyMod(oneacx2, oneacx2Info, 'add')
+xspec.AllModels.addPyMod(vacxnei, vacxneiInfo, 'add')
 
-print("Added models acx2, vacx2, vvacx2 and oneacx2 to XSPEC")
+print("Added models acx2, vacx2, vvacx2, oneacx2 and vacxnei to XSPEC")
 
 # m = xspec.Model('vvacx2')
 # m = xspec.Model('vacx2')
