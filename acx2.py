@@ -150,6 +150,7 @@ class ACXModel():
     self.temperature_set = False
     self.collision_set = False
     self.recombtype = SINGLE_RECOMBINATION
+    self.datacache={}
 
 
     if elements is None:
@@ -443,7 +444,7 @@ class ACXModel():
 
       return ret
 
-  def calc_linelist(self, collvalue, specrange, specunit='A', byDonor=False, fulldetail=False):
+  def calc_linelist(self, collvalue, specrange, specunit='A', byDonor=False, fulldetail=False, redshift=0.0):
     """
     Calculate the spectrum for all the donors, sum.
 
@@ -460,7 +461,8 @@ class ACXModel():
     fulldetail : bool
       If True, calls get_full_line_info to fill out the transition information
       e.g. configurations, quantum numbers.
-
+    redshift : float
+      Apply this redshift to the spectrum
 
     RETURNS
     -------
@@ -483,7 +485,7 @@ class ACXModel():
 
       for donor in self.DonorList:
 
-        tmp = donor.calc_linelist(collvalue, specrange, specunit=specunit)
+        tmp = donor.calc_linelist(collvalue, specrange, specunit=specunit, redshift=redshift)
         tmp['EPSILON'] *=donor.donorAbund
         if byDonor:
           ret[self.donor] = tmp # e.g. ret['h'] is the collision with H
@@ -588,6 +590,66 @@ class ACXModel():
 
     return ret
 
+  def calc_ionfrac_equilibrium(self):
+    """
+    Recalculate the ionization balance based on equilibrium electron temperature
+
+    PARAMETERS
+    ----------
+    None
+
+    RETURNS
+    -------
+    None
+
+    NOTES
+    -----
+    Uses self.temperature (in keV) to set self.ionfrac
+    """
+
+    for Z in self.elements:
+#        if not Z in self.ionfrac.keys():
+          self.ionfrac[Z] = pyatomdb.atomdb.apec.return_ionbal(Z, self.temperature,\
+                                                                   teunit='kev', datacache=self.datacache)
+    self.ionfrac_from_temperature = True
+
+
+  def calc_ionfrac_nonequilibrium(self, kT, kT_init, tau):
+    """
+    Recalculate the ionization balance based on equilibrium electron temperature
+
+    PARAMETERS
+    ----------
+    kT : float
+      electron temperature in keV
+    kT_init : float
+      initial ion distribution is equilibrium at this electron temperature (keV)
+    tau : float
+      ionization age (ne * t, cm^-3 s)
+
+    RETURNS
+    -------
+    None
+
+    NOTES
+    -----
+    Uses self.temperature (in keV) to set self.ionfrac
+    """
+
+    ionfrac = {}
+    print('kT', kT)
+    print('kT_init', kT_init)
+    print('tau', tau)
+    for Z in self.elements:
+#        if not Z in self.ionfrac.keys():
+          ionfrac[Z] = pyatomdb.apec.return_ionbal(Z, kT,\
+                                                  init_pop=kT_init,\
+                                                  tau = tau,\
+                                                  teunit='kev', \
+                                                  datacache=self.datacache,\
+                                                  fast=True)
+    #self.ionfrac_from_temperature = True
+    self.set_ionfrac(ionfrac)
 
 
 
@@ -1164,7 +1226,7 @@ class ACXDonorModel():
                   receivermass = self.crosssectiondata[ihdu+2].header['RECMASS'],\
                   donormass = self.crosssectiondata['INDEX'].header['DONMASS'])
 
-  def calc_linelist(self, collparam, specrange, specunit='A'):
+  def calc_linelist(self, collparam, specrange, specunit='A', redshift=0.0):
     """
     Calculate the spectrum we want
 
@@ -1216,7 +1278,8 @@ class ACXDonorModel():
             tmp = self.spectra[Z][z1].calc_linelist(\
                                      self.collenergy[Z], \
                                      self.collvelocity[Z], \
-                                     specrange, specunit=specunit)
+                                     specrange, specunit=specunit, \
+                                     redshift=redshift)
             tmp['EPSILON'] *= self.abund[Z] * ionf
             self.linelist=numpy.append(self.linelist,tmp)
 
@@ -1295,28 +1358,6 @@ class ACXDonorModel():
 
 
 
-  def calc_ionfrac_equilibrium(self):
-    """
-    Recalculate the ionization balance based on equilibrium electron temperature
-
-    PARAMETERS
-    ----------
-    None
-
-    RETURNS
-    -------
-    None
-
-    NOTES
-    -----
-    Uses self.temperature (in keV) to set self.ionfrac
-    """
-
-    for Z in self.elements:
-#        if not Z in self.ionfrac.keys():
-          self.ionfrac[Z] = pyatomdb.atomdb.apec.return_ionbal(Z, self.temperature,\
-                                                                   teunit='kev', datacache=self.datacache)
-    self.ionfrac_from_temperature = True
 
 
   def set_temperature(self, temperature):
@@ -2089,7 +2130,7 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
 
     return self.spectrum * collvelocity
 
-  def calc_linelist(self, collenergy, collvelocity, specrange, specunit='A'):
+  def calc_linelist(self, collenergy, collvelocity, specrange, specunit='A', redshift=0.0):
     """
     Calculate the spectrum of the data
 
