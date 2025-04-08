@@ -163,7 +163,7 @@ def acx2(engs, params, flux):
     # make a model
     m = xspec.Model('acx2')
   """
-  offest = 0
+  
 
   nparam = len(params)
   modeltype=False
