@@ -27,7 +27,7 @@ setup(name='acx2',
       author='Adam Foster',
       author_email='afoster@cfa.harvard.edu',
       license='Smithsonian',
-      py_modules=['acx2'],
+      py_modules=['acx2','acx2_xspec'],
       classifiers=['Development Status :: 4 - Beta',\
                    'Environment :: Console',\
                    'Intended Audience :: Developers',\
