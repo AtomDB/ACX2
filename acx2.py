@@ -78,26 +78,26 @@ def loginterp(newx, x, y, offset = 1e-40):
 
 
   if newx < x[0]:
-    yout=y[0]
+    yout=numpy.exp(y[0])
 
   else:
 
     if newx > x[-1]:
       if x[-1] > 0:
-        yy = numpy.log(y+1e-40)
-        xx = numpy.log(x+1e-40)
-        newxx = numpy.log(newx+1e-40)
+#        yy = numpy.log(y+1e-40)
+        #xx = numpy.log(x+1e-40)
+#        newxx = numpy.log(newx+1e-40)
 
-        yout = numpy.exp(((yy[-1]-yy[-2])/(xx[-1]-xx[-2])) *\
-                (newxx-xx[-1])+yy[-1])-1e-40
+        yout = numpy.exp(((y[-1]-y[-2])/(x[-1]-x[-2])) *\
+                (newx-x[-1])+y[-1])-1e-40
       else:
         yout = 0.0
     else:
-      yy = numpy.log(y+1e-40)
-      xx = numpy.log(x+1e-40)
-      newxx = numpy.log(newx+1e-40)
+#      yy = numpy.log(y+1e-40)
+      #xx = numpy.log(x+1e-40)
+      #newxx = numpy.log(newx+1e-40)
 
-      yout = numpy.exp(numpy.interp(newxx, xx, yy))-1e-40
+      yout = numpy.exp(numpy.interp(newx, x, y))-1e-40
   return max([yout, 0.0])
 
 
@@ -1515,7 +1515,10 @@ class CXIonSpectrum():
     ihdu = numpy.where( (crosssectiondata['INDEX'].data['Z']==self.Z) &\
                         (crosssectiondata['INDEX'].data['z1']==self.z1))[0]
     if len(ihdu) == 1:
-      self.crosssectiondata = crosssectiondata[ihdu+2].data
+      self.crosssectiondata = numpy.array(crosssectiondata[ihdu+2].data)
+      self.crosssectiondata['C'] = numpy.log(self.crosssectiondata['C']+1e-40)
+      self.crosssectiondata['E'] = numpy.log(self.crosssectiondata['E']+1e-40)
+      
       self.coupling = crosssectiondata['INDEX'].data['resn'][ihdu].decode('ascii')
       self.DonorMass = crosssectiondata[ihdu+2].header['DONMASS']
       self.RecvMass = crosssectiondata[ihdu+2].header['RECMASS']
@@ -1804,7 +1807,7 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
                     (linedata[1].data['z1'] == self.z1))[0]
 
     if len(i) > 0:
-      self.ionlinedata = linedata[i[0]+2].data
+      self.ionlinedata = numpy.array(linedata[i[0]+2].data)
     else:
       self.ionlinedata = numpy.zeros(0, dtype = linedata[3].data.dtype)
 
@@ -1814,7 +1817,7 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
                     (contdata[1].data['z1'] == self.z1))[0]
 
     if len(i) > 0:
-      self.ioncontdata = contdata[i[0]+2].data
+      self.ioncontdata = numpy.array(contdata[i[0]+2].data)
 
     #create arrays to hold the n l s values
       self.n = numpy.zeros(len(self.ioncontdata))
@@ -2114,8 +2117,7 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
     if len(self.ioncontdata) > 0:
       for p,item in enumerate(self.ioncontdata):
         if Coutarraynl[p] > 0.0:
-
-          if self.ioncontdata['N_cont'][p] > 2:
+          if self.ioncontdata['N_Cont'][p] > 2:
             ncont = self.ioncontdata['N_Cont'][p] #shorten array
             spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Cont'][p][:ncont], self.ioncontdata['Continuum'][p][:ncont]) * (Coutarraynl[p])
           if self.ioncontdata['N_Pseudo'][p] > 2:
@@ -2324,7 +2326,7 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     self.z1 = z1
 
     self.Ip_donor = linedata[1].header['Ip_D']
-    self.crosssectiondata = crosssectiondata
+    self.crosssectiondata = numpy.array(crosssectiondata)
     self.donor = donor
     self.receivermass = receivermass
     self.donormass = donormass
@@ -2337,12 +2339,12 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     i = numpy.where((linedata[1].data['Z'] == self.Z) &\
                     (linedata[1].data['z1'] == self.z1))[0][0]
 
-    self.ionlinedata = linedata[i+2].data
+    self.ionlinedata = numpy.array(linedata[i+2].data)
 
     i = numpy.where((contdata[1].data['Z'] == self.Z) &\
                     (contdata[1].data['z1'] == self.z1))[0][0]
 
-    self.ioncontdata = contdata[i+2].data
+    self.ioncontdata = numpy.array(contdata[i+2].data)
 
     #find the n l s values from the header and write to arrays
     self.n = numpy.zeros(len(self.ioncontdata))
@@ -2363,6 +2365,19 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     #to store the location of all the HDU data
     self.linedata=linedata
     self.contdata=contdata
+
+
+    Coutindex = numpy.zeros(len(self.ioncontdata), dtype = int)
+    Coutindex[:]=-1
+    for isig, sig in enumerate(self.crosssectiondata):
+      for b,item in enumerate(self.n):
+        if self.n[b] == sig['n'] and self.l[b] == sig['l'] and \
+           self.s[b]==sig['S2p1']:
+          Coutindex[isig] = b
+          break
+    self.Coutindex = Coutindex
+
+
 
 
     self.spectra ={}
@@ -2503,7 +2518,7 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     if len(self.ioncontdata) > 0:
       for p,item in enumerate(self.ioncontdata):
         if Coutarraynl[p] > 0.0:
-          if self.ioncontdata['N_cont'][p] > 2:
+          if self.ioncontdata['N_Cont'][p] > 2:
             ncont = self.ioncontdata['N_Cont'][p] #shorten array
             spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Cont'][p][:ncont], self.ioncontdata['Continuum'][p][:ncont]) * (Coutarraynl[p])
 
@@ -2579,7 +2594,7 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
 
     Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
     for sig in self.crosssectiondata:
-      Cout = loginterp(collenergy, sig['E'], sig['C'])
+      Cout = loginterp(numpy.log(collenergy+1e-40), sig['E'], sig['C'])
       for b,item in enumerate(self.n):
         if self.n[b] == sig['n'] and self.l[b] == sig['l'] and self.s[b] == sig['S2p1']:
           Coutarraynl[b] = Cout
@@ -2640,12 +2655,14 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
 
     #create array that goes through the sigma files for the known distribution of n with l from above
     Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
-    for sig in self.crosssectiondata:
-      Cout = loginterp(collenergy, sig['E'], sig['C'])
-      for b,item in enumerate(self.n):
-        if self.n[b] == sig['n'] and self.l[b] == sig['l'] and \
-           self.s[b]==sig['s2p1']:
-          Coutarraynl[b] = Cout
+    for isig, sig in enumerate(self.crosssectiondata):
+      iout = self.Coutindex[isig]
+      if iout<0:continue
+      Cout = loginterp(numpy.log(collenergy+1e-40), sig['E'], sig['C'])
+#      for b,item in enumerate(self.n):
+        #if self.n[b] == sig['n'] and self.l[b] == sig['l'] and \
+        #   self.s[b]==sig['S2p1']:
+      Coutarraynl[iout] = Cout
     totalCout = sum(Coutarraynl)
     ret = {}
     ret['n'] = self.n
@@ -2717,12 +2734,12 @@ class CXIonSpectrum_N(CXIonSpectrum):
     i = numpy.where((linedata[1].data['Z'] == self.Z) &\
                     (linedata[1].data['z1'] == self.z1))[0][0]
 
-    self.ionlinedata = linedata[i+2].data
+    self.ionlinedata = numpy.array(linedata[i+2].data)
 
     i = numpy.where((contdata[1].data['Z'] == self.Z) &\
                     (contdata[1].data['z1'] == self.z1))[0][0]
 
-    self.ioncontdata = contdata[i+2].data
+    self.ioncontdata = numpy.array(contdata[i+2].data)
 
     #find the n l s values from the header and write to arrays
     self.n = numpy.zeros(len(self.ioncontdata))
@@ -2881,7 +2898,7 @@ class CXIonSpectrum_N(CXIonSpectrum):
     if len(self.ioncontdata) > 0:
       for p,item in enumerate(self.ioncontdata):
         if Coutarraynl[p] > 0.0:
-          if self.ioncontdata['N_cont'][p] > 2:
+          if self.ioncontdata['N_Cont'][p] > 2:
             ncont = self.ioncontdata['N_Cont'][p] #shorten array
             spec += self.expand_E_grid(self.ebins, self.ioncontdata['E_Cont'][p][:ncont], self.ioncontdata['Continuum'][p][:ncont]) * (Coutarraynl[p])
 
@@ -2968,7 +2985,7 @@ class CXIonSpectrum_N(CXIonSpectrum):
     #create array that goes through the sigma files for the known distribution of n with l from above
     Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
     for sig in self.crosssectiondata:
-      Cout = loginterp(collenergy, sig['E'], sig['C'])
+      Cout = loginterp(numpy.log(collenergy+1e-40), sig['E'], sig['C'])
       for b,item in enumerate(self.n):
         if self.n[b] == sig['n'] and self.l[b] == l:
           Coutarraynl[b] = Cout
@@ -3035,10 +3052,10 @@ class CXIonSpectrum_N(CXIonSpectrum):
     #create array that goes through the sigma files for the known distribution of n with l from above
     Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
     for sig in self.crosssectiondata:
-      Cout = loginterp(collenergy, sig['E'], sig['C'])
-      for b,item in enumerate(self.n):
-        if self.n[b] == sig['n'] and self.l[b] == l:
-          Coutarraynl[b] = Cout
+      Cout = loginterp(numpy.log(collenergy+1e-40), sig['E'], sig['C'])
+      iCout = numpy.where((self.n == sig['n']) & (self.l == l))[0]
+      if len(iCout) > 0:
+        Coutarraynl[iCout[0]] = Cout
     totalCout = sum(Coutarraynl)
     ret = {}
     ret['n'] = self.n

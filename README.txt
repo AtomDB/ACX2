@@ -372,5 +372,8 @@ Added a new function to list the lines in a wavelength region and then get the q
 April 7th 2025
 Added a new model, vacxnei, for non-equilibrium plasma. See examples/test_acx_linelist.py
 
+2.4.0
+July 16th 2025
+Reworked code to increase model speed, should be ~ 10 times faster (after initialization)
 
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
