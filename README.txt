@@ -17,7 +17,7 @@ Installation
 =======================
 Standard python installation
 
-Download/clone the code from [GitHub]<https://github.com/AtomDB/ACX2>.
+Download/clone the code from `GitHub <https://github.com/AtomDB/ACX2>`__.
 
 .. code-block:: bash
 
