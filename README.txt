@@ -376,4 +376,8 @@ Added a new model, vacxnei, for non-equilibrium plasma. See examples/test_acx_li
 July 16th 2025
 Reworked code to increase model speed, should be ~ 10 times faster (after initialization)
 
+2.4.1
+August 15th 2025
+Automatic installation of required datafiles should now work.
+
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
