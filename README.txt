@@ -17,23 +17,19 @@ Installation
 =======================
 Standard python installation
 
+Download/clone the code from [GitHub]<https://github.com/AtomDB/ACX2>.
+
 .. code-block:: bash
 
-   python setup.py install
+   pip install -e ACX2
 
 .. note::
+
    ACX2 is a python 3 only module. Depending on your system's setup, you may need to substitute ``python3`` for all references to ``python``.
-
-There are several useful flags that can be provided to this call, depending on your system:
-
-  - ``--user`` flag causes installation in the user's home directory (useful if you lack root priviliges)
-
-  - ``develop`` instead of ``install`` will install links to the current directory. This is useful if you want to edit/debug/develop the files further.
 
 =====
 Usage
 =====
-
 
 Each model in ACX2 can have an arbitrary set of donors. By default for the XSPEC model these are neutral H and He, but others may be selected. Additional input files will be required for these - please contact the project via the AtomDB or GitHub pages to make or discuss requests.
 
@@ -41,15 +37,12 @@ Each model in ACX2 can have an arbitrary set of donors. By default for the XSPEC
 Data Files
 ----------
 
-Each model requires a set of data files to be installed with it. As these files are large they cannot be exported through GitHub. These files will be downloaded automatically to your $ATOMDB folder on first opening the package.
+Each model requires a set of data files to be installed with it. As these files are large they cannot be exported through GitHub. These files will be downloaded automatically to your $ATOMDB folder as required.
 
 The files for each donor are:
   - ``sigma`` files: the cross sections for capture into each n, l and S (depending on the ion) from the Kronos database
   - ``line`` files: the line emission for capture into each n, l and S (depending on the ion) or each n and ACX1 l distribution for ions with no Kronos data
   - ``cont`` files: same as line files, but including continuum emission. True continuum in CX is entirely 2-photon emission from H-, He- and Be-like ions.
-
-.. note::
-  The emissivity data files have thousands of HDUs as currently assembled. Although these files read quickly in python, when opening in some programs (e.g. ``fv``) the load times can be upwards of 10 minutes. **As of January 2024 this (version 2.1) this has been resolved.
 
 -------
 Classes
