@@ -1,7 +1,7 @@
-import acx2, numpy
+import acx2, numpy, os
 
 ### NOTE CHANGE THIS FILEMAP LOCATION
-filemap = '/export1/atomdb_latest/filemap_v3.0.9_cx' # the location of the filemap (tells it which files to load)
+filemap=os.path.expandvars('$ATOMDB/filemap-acx2_v2.1.0') # the location of the filemap (tells it which files to load)
 
 
 Z = 26 # Iron

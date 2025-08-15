@@ -7,8 +7,9 @@
 
 """
 
-import pyatomdb, numpy, os, hashlib
+import pyatomdb, numpy, os, hashlib, urllib.request, urllib.parse, urllib.error
 import astropy.io.fits as pyfits
+import wget, shutil
 
 # this is the library for running the ACX2 model.
 
@@ -176,9 +177,9 @@ class ACXModel():
 
 
   def add_donor(self, donor, \
-                donor_linefile="$ATOMDB/acx2_XDONORX_vXVERSIONX_line.fits", \
-                donor_contfile="$ATOMDB/acx2_XDONORX_vXVERSIONX_cont.fits", \
-                donor_crosssectionfile="$ATOMDB/acx2_XDONORX_vXVERSIONX_sigma.fits", \
+                donor_linefile=None, \
+                donor_contfile=None, \
+                donor_crosssectionfile=None, \
                 abundset='AG89',\
                 elements=None):
     """
@@ -207,16 +208,50 @@ class ACXModel():
     -----
     Sets parameters in self.DonorList
     """
+    try:
+      curversion = open(os.path.expandvars('$ATOMDB/VERSION_ACX'),'r').read()[:-1]
+    except FileNotFoundError:
+      download=True
+      curversion=urllib.request.urlopen('%s/releases/LATEST_ACX'%(pyatomdb.const.FTPPATH)).read().decode('ascii')[:-1]
+
+    need_version_check=False
+    if donor_linefile is None:
+      donor_linefile="$ATOMDB/acx2_XDONORX_vXVERSIONX_line.fits"
+      need_version_check=True
+    if donor_contfile is None:
+      donor_contfile="$ATOMDB/acx2_XDONORX_vXVERSIONX_cont.fits"
+      need_version_check=True
+    if donor_crosssectionfile is None:
+      donor_crosssectionfile="$ATOMDB/acx2_XDONORX_vXVERSIONX_sigma.fits"
+      need_version_check=True
 
     # Load default data values
-
-    curversion = open(os.path.expandvars('$ATOMDB/VERSION_ACX'),'r').read()[:-1]
-
-    #get the new filenames donor
+    if need_version_check:
+      download = False
 
     donor_linefile_actual = os.path.expandvars(donor_linefile).replace('XDONORX', donor).replace('XVERSIONX', curversion)
     donor_contfile_actual = os.path.expandvars(donor_contfile).replace('XDONORX', donor).replace('XVERSIONX', curversion)
     donor_crosssectionfile_actual = os.path.expandvars(donor_crosssectionfile).replace('XDONORX', donor).replace('XVERSIONX', curversion)
+
+    # check if files exist
+    if not os.path.exists(donor_linefile_actual):
+      download=True
+    if not os.path.exists(donor_contfile_actual):
+      download=True
+    if not os.path.exists(donor_crosssectionfile_actual):
+      download=True
+
+    if download:
+      try:
+        userprefs = pyatomdb.util.load_user_prefs(adbroot=os.path.expandvars('$ATOMDB'))
+        userid = userprefs['USERID'] 
+      except:
+        userid='00000000'
+      download_acx_emissivity_files(os.path.expandvars('$ATOMDB'), \
+                                    userid, curversion, donor)
+
+    #get the new filenames donor
+
 
     if elements is None:
       elements=self.elements
@@ -2193,13 +2228,14 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
     if len(self.ionlinedata) > 0:
 
       l['EPSILON'] = new_epsilon * collvelocity
-      l['LAMBDA'] =  self.ionlinedata['LAMBDA']
+      print(self.ionlinedata.dtype)
+      l['LAMBDA'] =  self.ionlinedata['Lambda']
       l['ENERGY'] = pyatomdb.const.HC_IN_KEV_A/l['LAMBDA']
-      l['ELEMENT'] = self.ionlinedata['ELEMENT']
-      l['ION'] = self.ionlinedata['ION']
-      l['ION_DRV'] = self.ionlinedata['ION_DRV']
-      l['UPPERLEV'] = self.ionlinedata['UPPERLEV']
-      l['LOWERLEV'] = self.ionlinedata['LOWERLEV']
+      l['ELEMENT'] = self.ionlinedata['Element']
+      l['ION'] = self.ionlinedata['Ion']
+      l['ION_DRV'] = self.ionlinedata['Ion_drv']
+      l['UPPERLEV'] = self.ionlinedata['UpperLev']
+      l['LOWERLEV'] = self.ionlinedata['LowerLev']
 
     self.linelist = l[(l['LAMBDA']>=wave[0]) & (l['LAMBDA']<=wave[1])]
     return self.linelist
@@ -3479,85 +3515,83 @@ def test():
   return myacx
 
 
-# def download_acx_emissivity_files(adbroot=None, userid, version=None):
+def download_acx_emissivity_files(adbroot, userid, version, donor):
 
-  # """
-  # Download the AtomDB CX model emissivity files for AtomDB"
+  """
+  Download the AtomDB CX model emissivity files for AtomDB"
 
-  # This code will go to the AtomDB FTP site and download the necessary files.
-  # It will then unpack them into a directory adbroot. It will not
-  # overwrite existing files with the same md5sum (to avoid pointless updates)
-  # but it will not know this until it has downloaded and unzipped the main
-  # file.
+  This code will go to the AtomDB FTP site and download the necessary files.
+  It will then unpack them into a directory adbroot. It will not
+  overwrite existing files with the same md5sum (to avoid pointless updates)
+  but it will not know this until it has downloaded and unzipped the main
+  file.
 
-  # Parameters
-  # ----------
+  Parameters
+  ----------
 
-  # adbroot : string
-    # The location to install the data. Typically should match $ATOMDB
-  # userid : string
-    # An 8 digit ID number. Usually passed as a string, but integer
-    # is also fine (provided it is all numbers)
-  # version : string
-    # The version string, including donors for the release, e.g. "2_1_0-h_he"
+  adbroot : string
+    The location to install the data. Typically should match $ATOMDB
+  userid : string
+    An 8 digit ID number. Usually passed as a string, but integer
+    is also fine (provided it is all numbers)
+  version : string
+    The version string, including donors for the release, e.g. "2_1_0-h_he"
 
-  # Returns
-  # -------
-  # None
-  # """
+  Returns
+  -------
+  None
+  """
 
-  # import tarfile
+  import tarfile
 
-  # # set up remote file name
-  # fname = "acx2-v%s-data.tar.bz2"%(version)
+  # set up remote file name
+  fname = "acx2-v%s-%s-data.tar.bz2"%(version, donor.lower())
 
-  # if adbroot is None:
-    # adbroot = os.environ.get('ATOMDB')
-    # if adbroot is None:
-      # print("Error: to automatically download and install AtomDB files, must have $ATOMDB environment variable set")
+  if adbroot is None:
+    adbroot = os.environ.get('ATOMDB')
+    if adbroot is None:
+      print("Error: to automatically download and install AtomDB files, must have $ATOMDB environment variable set")
 
-  # a=curl.Curl()
-  # version=a.get('%s/releases/LATEST_ACX2'%(const.FTPPATH))[:-1].decode(encoding='ascii')
-  # a.close()
+  # set up temporary directory to hold data
 
-  # # set up temporary directory to hold data
+  if adbroot[0] != '/':
+    # is a relative path
+    adbroot = "%s/%s"%(os.getcwd(), adbroot)
 
-  # if adbroot[0] != '/':
-    # # is a relative path
-    # adbroot = "%s/%s"%(os.getcwd(), adbroot)
-
-  # mkdir_p(adbroot)
-  # if adbroot[-1]=='/':
-    # tmpdir = adbroot+'installtmp'
-  # else:
-    # tmpdir = adbroot+'/installtmp'
+  pyatomdb.util.mkdir_p(adbroot)
+  if adbroot[-1]=='/':
+    tmpdir = adbroot+'installtmp'
+  else:
+    tmpdir = adbroot+'/installtmp'
 
 
-  # print("making directory %s"%(tmpdir))
-  # mkdir_p(tmpdir)
+  print("making directory %s"%(tmpdir))
+  pyatomdb.util.mkdir_p(tmpdir)
 
-  # # get the files
-  # urllib.request.urlcleanup()
-  # fnameout = wget.download('%s/releases/%s'%(pyatomdb.const.FTPPATH,fname), out="%s/%s"%(tmpdir, fname))
-  # # collect user statistics if allowed.
-  # record_upload(fname)
+  # get the files
+  urllib.request.urlcleanup()
+  print('%s/releases/%s'%(pyatomdb.const.FTPPATH,fname))
+  print("%s/%s"%(tmpdir, fname))
+  fnameout = wget.download('%s/releases/%s'%(pyatomdb.const.FTPPATH,fname), out="%s/%s"%(tmpdir, fname))
+  # collect user statistics if allowed.
+  pyatomdb.util.record_upload(fname)
 
-  # #uncompress
-  # print("")
-  # print("Uncompressing ... ", end=' ')
+  #uncompress
+  print("")
+  print("Uncompressing ... ", end=' ')
 
-  # tf = tarfile.open(name=fnameout, mode='r:bz2')
-  # tf.extractall(path=tmpdir)
-  # print("Uncompressed")
-  # # copy the files
-  # dirname = 'acx2_v%s-data'%(version)
-  # for l in os.listdir('%s/%s'%(tmpdir, dirname)):
-    # print("moving %s/%s/%s to %s/%s"%(tmpdir, dirname, l, adbroot, l))
-    # shutil.move("%s/%s/%s"%(tmpdir, dirname, l), "%s/%s"%(adbroot, l))
+  tf = tarfile.open(name=fnameout, mode='r:bz2')
+  tf.extractall(path=tmpdir)
+  print("Uncompressed")
+  # copy the files
+  dirname = fname[:-8]
+  for l in os.listdir('%s/%s'%(tmpdir, dirname)):
+    print("moving %s/%s/%s to %s/%s"%(tmpdir, dirname, l, adbroot, l))
+    shutil.move("%s/%s/%s"%(tmpdir, dirname, l), "%s/%s"%(adbroot, l))
 
-  # print("...done")
+  print("...done")
 
-  # shutil.rmtree(tmpdir)
+  shutil.rmtree(tmpdir)
 
 
 
