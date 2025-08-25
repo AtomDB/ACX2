@@ -21,8 +21,7 @@ DEBUG=False
 SINGLE_RECOMBINATION = 1
 FULL_RECOMBINATION = 2
 FULL_NORMALIZED_RECOMBINATION = 3
-__version__="2.1.4"
-
+__version__="2.4.1"
 llistdtype = numpy.dtype({'names':['EPSILON','LAMBDA','ENERGY',\
                                    'ELEMENT','ION','ION_DRV',\
                                    'UPPERLEV','LOWERLEV'],\
@@ -244,7 +243,7 @@ class ACXModel():
     if download:
       try:
         userprefs = pyatomdb.util.load_user_prefs(adbroot=os.path.expandvars('$ATOMDB'))
-        userid = userprefs['USERID'] 
+        userid = userprefs['USERID']
       except:
         userid='00000000'
       download_acx_emissivity_files(os.path.expandvars('$ATOMDB'), \
@@ -357,7 +356,7 @@ class ACXModel():
 
     # calculate ionization balance
     self.calc_ionfrac_equilibrium()
-    
+
     for donor in self.DonorList:
       donor.set_ionfrac(self.ionfrac)
       donor.ionfrac_from_temperature = True
@@ -511,7 +510,7 @@ class ACXModel():
     linelist : numpy.array
       Numpy array of lines and emissivity, custom dtype. If byDonor=True, a dict with donor names and these data
    """
-    
+
 #    if DEBUG:
       #ret = []
       #for donor in self.DonorList:
@@ -647,7 +646,7 @@ class ACXModel():
     -----
     Uses self.temperature (in keV) to set self.ionfrac
     """
-    
+
     self.ionfrac={}
     for Z in self.elements:
 #        if not Z in self.ionfrac.keys():
@@ -1553,7 +1552,7 @@ class CXIonSpectrum():
       self.crosssectiondata = numpy.array(crosssectiondata[ihdu+2].data)
       self.crosssectiondata['C'] = numpy.log(self.crosssectiondata['C']+1e-40)
       self.crosssectiondata['E'] = numpy.log(self.crosssectiondata['E']+1e-40)
-      
+
       self.coupling = crosssectiondata['INDEX'].data['resn'][ihdu].decode('ascii')
       self.DonorMass = crosssectiondata[ihdu+2].header['DONMASS']
       self.RecvMass = crosssectiondata[ihdu+2].header['RECMASS']
