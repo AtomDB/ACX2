@@ -2,7 +2,7 @@
 
 import acx2
 import pyatomdb
-import curl
+import requests
 import os
 import shutil
 import time
@@ -111,8 +111,9 @@ else:
 
 
   if install=='yes':
-    a=curl.Curl()
-    version=a.get('%s/releases/LATEST_ACX'%(pyatomdb.const.FTPPATH))[:-1].decode(encoding='ascii')
+    r=requests.get('%s/releases/LATEST_ACX'%(pyatomdb.const.FTPPATH))
+    r.encoding = 'ascii'
+    version = r.text.partition('\n')[0]
     userprefs = pyatomdb.util.load_user_prefs(adbroot=adbroot)
     userid = userprefs['USERID']
     userprefs['LASTCXVERSIONCHECK'] = time.time()
