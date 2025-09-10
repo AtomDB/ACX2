@@ -373,4 +373,7 @@ Reworked code to increase model speed, should be ~ 10 times faster (after initia
 August 15th 2025
 Automatic installation of required datafiles should now work.
 
+2.5.0
+September 10th 2025
+Fix issue introduced in 2.4.0 which miscalculated the NLS and N resolved cross sections
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html

@@ -23,7 +23,7 @@ FULL_RECOMBINATION = 2
 FULL_NORMALIZED_RECOMBINATION = 3
 SMALL=1e-40
 
-__version__="2.4.1"
+__version__="2.5.0"
 llistdtype = numpy.dtype({'names':['EPSILON','LAMBDA','ENERGY',\
                                    'ELEMENT','ION','ION_DRV',\
                                    'UPPERLEV','LOWERLEV'],\
