@@ -21,6 +21,8 @@ DEBUG=False
 SINGLE_RECOMBINATION = 1
 FULL_RECOMBINATION = 2
 FULL_NORMALIZED_RECOMBINATION = 3
+SMALL=1e-40
+
 __version__="2.4.1"
 llistdtype = numpy.dtype({'names':['EPSILON','LAMBDA','ENERGY',\
                                    'ELEMENT','ION','ION_DRV',\
@@ -49,7 +51,7 @@ try:
 except:
   pass
 
-def loginterp(newx, x, y, offset = 1e-40):
+def loginterp(newx, x, y, offset = SMALL):
   """
   Interpolation helper function. Interpolates linearly on a log-log grid
   If newx < x[0], return x[0].
@@ -89,7 +91,7 @@ def loginterp(newx, x, y, offset = 1e-40):
 #        newxx = numpy.log(newx+1e-40)
 
         yout = numpy.exp(((y[-1]-y[-2])/(x[-1]-x[-2])) *\
-                (newx-x[-1])+y[-1])-1e-40
+                (newx-x[-1])+y[-1])-offset
       else:
         yout = 0.0
     else:
@@ -97,7 +99,7 @@ def loginterp(newx, x, y, offset = 1e-40):
       #xx = numpy.log(x+1e-40)
       #newxx = numpy.log(newx+1e-40)
 
-      yout = numpy.exp(numpy.interp(newx, x, y))-1e-40
+      yout = numpy.exp(numpy.interp(newx, x, y))-offset
   return max([yout, 0.0])
 
 
@@ -1176,25 +1178,20 @@ class ACXDonorModel():
     # get the velocity etc
     self.set_collisionparam(collparam)
     self.initialize_CXIonspectrum()
-
     # set up return array for spectrum
     if DEBUG:
       self.emiss_debug = {}
     self.emiss = numpy.zeros(len(self.ebins)-1, dtype=float)
-#    print("IONFRAC:", self.ionfrac)
-    #print("elements: ", self.elements)
     for iZ, Z in enumerate(self.elements):
       if self.abund[Z] > 0.0:
         for z1 in range(2, Z+2):# z1 here is the recombin*ing* ion charge +1
           if self.recombtype == SINGLE_RECOMBINATION:
             ionf = self.ionfrac[Z][z1-1] #ionfrac is indexed from 0, not 1
-#            print("Z=",Z,", z1-1=", z1-1, ", ionf=", ionf)
           elif ((self.recombtype == FULL_RECOMBINATION) | (self.recombtype == FULL_NORMALIZED_RECOMBINATION)):
             ionf = sum(self.ionfrac[Z][z1-1:])
           else:
             raise ValueError("Invalid recombtype ", self.recombtype)
           if self.abund[Z]*ionf > 1e-10:
-#            print("Z=%i, z1=%i"%(Z, z1))
 
             # set the energy bins for the spectrum
             self.spectra[Z][z1].set_ebins(self.ebins, ebins_checksum=self.ebins_checksum)
@@ -1373,7 +1370,7 @@ class ACXDonorModel():
         else:
           raise ValueError("Invalid recombtype ", self.recombtype)
         if self.abund[Z]*ionf > 1e-40: #ionfrac is indexed from 0, not 1
-#          print("Z=%i, z1=%i"%(Z, z1))
+
             # set the energy bins for the spectrum
           self.spectra[Z][z1].set_ebins(self.ebins, ebins_checksum=self.ebins_checksum)
 
@@ -1550,8 +1547,8 @@ class CXIonSpectrum():
                         (crosssectiondata['INDEX'].data['z1']==self.z1))[0]
     if len(ihdu) == 1:
       self.crosssectiondata = numpy.array(crosssectiondata[ihdu+2].data)
-      self.crosssectiondata['C'] = numpy.log(self.crosssectiondata['C']+1e-40)
-      self.crosssectiondata['E'] = numpy.log(self.crosssectiondata['E']+1e-40)
+      self.crosssectiondata['C'] = numpy.log(self.crosssectiondata['C']+SMALL)
+      self.crosssectiondata['E'] = numpy.log(self.crosssectiondata['E']+SMALL)
 
       self.coupling = crosssectiondata['INDEX'].data['resn'][ihdu].decode('ascii')
       self.DonorMass = crosssectiondata[ihdu+2].header['DONMASS']
@@ -2227,7 +2224,6 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
     if len(self.ionlinedata) > 0:
 
       l['EPSILON'] = new_epsilon * collvelocity
-      print(self.ionlinedata.dtype)
       l['LAMBDA'] =  self.ionlinedata['Lambda']
       l['ENERGY'] = pyatomdb.const.HC_IN_KEV_A/l['LAMBDA']
       l['ELEMENT'] = self.ionlinedata['Element']
@@ -2362,6 +2358,11 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
 
     self.Ip_donor = linedata[1].header['Ip_D']
     self.crosssectiondata = numpy.array(crosssectiondata)
+    
+    # logs of the data!
+    self.crosssectiondata['E'] = numpy.log(self.crosssectiondata['E']+SMALL)
+    self.crosssectiondata['C'] = numpy.log(self.crosssectiondata['C']+SMALL)
+    
     self.donor = donor
     self.receivermass = receivermass
     self.donormass = donormass
@@ -2467,6 +2468,7 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     cross_section = self.calc_crosssection(collenergy)
 
     Coutarraynl = cross_section['sigma']
+    #print("NLS: Coutarraynl=", Coutarraynl)
     #for every transition, multiplies the capture_frac with the emission, and sums the value. total emissivity
 #    new_epsilon = numpy.sum(Coutarraynl * self.ionlinedata['Epsilon'], 1)
     if len(Coutarraynl)==0:
@@ -2628,8 +2630,9 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
   def calc_line_emissivity(self, collenergy, collvelocity, up, lo):
 
     Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
+    logcollenergy=numpy.log(collenergy+SMALL)
     for sig in self.crosssectiondata:
-      Cout = loginterp(numpy.log(collenergy+1e-40), sig['E'], sig['C'])
+      Cout = loginterp(logcollenergy, sig['E'], sig['C'])
       for b,item in enumerate(self.n):
         if self.n[b] == sig['n'] and self.l[b] == sig['l'] and self.s[b] == sig['S2p1']:
           Coutarraynl[b] = Cout
@@ -2690,14 +2693,17 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
 
     #create array that goes through the sigma files for the known distribution of n with l from above
     Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
+    logcollenergy = numpy.log(collenergy+SMALL)
     for isig, sig in enumerate(self.crosssectiondata):
       iout = self.Coutindex[isig]
       if iout<0:continue
-      Cout = loginterp(numpy.log(collenergy+1e-40), sig['E'], sig['C'])
+      Cout = loginterp(logcollenergy, sig['E'], sig['C'])
+      
 #      for b,item in enumerate(self.n):
         #if self.n[b] == sig['n'] and self.l[b] == sig['l'] and \
         #   self.s[b]==sig['S2p1']:
       Coutarraynl[iout] = Cout
+      
     totalCout = sum(Coutarraynl)
     ret = {}
     ret['n'] = self.n
@@ -2706,7 +2712,6 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     ret['S'][:] = -1
     ret['sigma'] = Coutarraynl
     ret['sigma_total'] = totalCout
-
     return(ret)
 
 
@@ -2755,6 +2760,10 @@ class CXIonSpectrum_N(CXIonSpectrum):
 
     self.Ip_donor = linedata[1].header['Ip_D']
     self.crosssectiondata = crosssectiondata
+    # logs of the data!
+    self.crosssectiondata['E'] = numpy.log(self.crosssectiondata['E']+SMALL)
+    self.crosssectiondata['C'] = numpy.log(self.crosssectiondata['C']+SMALL)
+
     self.donor = donor
     self.receivermass = receivermass
     self.donormass = donormass
@@ -3020,7 +3029,7 @@ class CXIonSpectrum_N(CXIonSpectrum):
     #create array that goes through the sigma files for the known distribution of n with l from above
     Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
     for sig in self.crosssectiondata:
-      Cout = loginterp(numpy.log(collenergy+1e-40), sig['E'], sig['C'])
+      Cout = loginterp(numpy.log(collenergy+SMALL), sig['E'], sig['C'])
       for b,item in enumerate(self.n):
         if self.n[b] == sig['n'] and self.l[b] == l:
           Coutarraynl[b] = Cout
@@ -3086,8 +3095,11 @@ class CXIonSpectrum_N(CXIonSpectrum):
 
     #create array that goes through the sigma files for the known distribution of n with l from above
     Coutarraynl = numpy.zeros(len(self.ioncontdata), dtype = float)
+    
+    logcollenergy = numpy.log(collenergy+SMALL)
+    
     for sig in self.crosssectiondata:
-      Cout = loginterp(numpy.log(collenergy+1e-40), sig['E'], sig['C'])
+      Cout = loginterp(logcollenergy, sig['E'], sig['C'])
       iCout = numpy.where((self.n == sig['n']) & (self.l == l))[0]
       if len(iCout) > 0:
         Coutarraynl[iCout[0]] = Cout
