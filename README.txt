@@ -289,6 +289,10 @@ To recover the true emissivity of the plasma given an XSPEC fit result:
 #.  Else, cf = 1
 #.  :math:`\text{norm}_{\text{geom}} = \text{norm}_{\text{XSPEC}} * 10^{10} / \text{cf}`
 
+Remember that :math:`text{flux} = \text{norm}_{\text{geom}} * \text{Emissivity}`, so if you want the emissivity invert the :math:`10^{10} / \text{cf}` factor.
+
+
+
 
 
 ===============
