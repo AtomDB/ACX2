@@ -287,7 +287,7 @@ To recover the true emissivity of the plasma given an XSPEC fit result:
     #. If collntype == 4: cf = 12.0 * collnpar/(1.0+12.0)  = collnpar*12/13
 
 #.  Else, cf = 1
-#.  :math:`\text{norm}_{\text{geom}} = \text{norm}_{\text{XSPEC}} * \text{cf} * 10^{-10}`
+#.  :math:`\text{norm}_{\text{geom}} = \text{norm}_{\text{XSPEC}} * 10^{10} / \text{cf}`
 
 
 
