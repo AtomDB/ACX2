@@ -380,4 +380,9 @@ Automatic installation of required datafiles should now work.
 2.5.0
 September 10th 2025
 Fix issue introduced in 2.4.0 which miscalculated the NLS and N resolved cross sections
+
+2.5.1
+January 5th 2026
+Updated acx2 filemap file to allow ID of more high-n lines. To obtain these, delete $ATOMDB/*acx2*, and they should redownload next time you import acx2 and add a donor, e.g. acxmodel.add_donor('H')
+
 .. _pyxspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/index.html
