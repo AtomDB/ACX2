@@ -2232,7 +2232,7 @@ class CXIonSpectrum_ACX1(CXIonSpectrum):
       l['UPPERLEV'] = self.ionlinedata['UpperLev']
       l['LOWERLEV'] = self.ionlinedata['LowerLev']
 
-    self.linelist = l[(l['LAMBDA']>=wave[0]) & (l['LAMBDA']<=wave[1])]
+    self.linelist = l[(l['LAMBDA']>=wave[0]/(1+redshift)) & (l['LAMBDA']<=wave[1]/(1+redshift))]
     return self.linelist
 
 
@@ -2571,7 +2571,7 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     return self.spectrum * collvelocity
 
 
-  def calc_linelist(self, collenergy, collvelocity, specrange, specunit='A'):
+  def calc_linelist(self, collenergy, collvelocity, specrange, specunit='A', redshift=0.0):
     """
     Calculate the spectrum of the data
 
@@ -2615,15 +2615,15 @@ class CXIonSpectrum_NLS(CXIonSpectrum):
     if len(self.ionlinedata) > 0:
 
       l['EPSILON'] = new_epsilon * collvelocity
-      l['LAMBDA'] =  self.ionlinedata['LAMBDA']
+      l['LAMBDA'] =  self.ionlinedata['Lambda']
       l['ENERGY'] = pyatomdb.const.HC_IN_KEV_A/l['LAMBDA']
-      l['ELEMENT'] = self.ionlinedata['ELEMENT']
-      l['ION'] = self.ionlinedata['ION']
-      l['ION_DRV'] = self.ionlinedata['ION_DRV']
-      l['UPPERLEV'] = self.ionlinedata['UPPERLEV']
-      l['LOWERLEV'] = self.ionlinedata['LOWERLEV']
+      l['ELEMENT'] = self.ionlinedata['Element']
+      l['ION'] = self.ionlinedata['Ion']
+      l['ION_DRV'] = self.ionlinedata['Ion_drv']
+      l['UPPERLEV'] = self.ionlinedata['UpperLev']
+      l['LOWERLEV'] = self.ionlinedata['LowerLev']
 
-    self.linelist = l[(l['LAMBDA']>=wave[0]) & (l['LAMBDA']<=wave[1])]
+    self.linelist = l[(l['LAMBDA']>=wave[0]/(1+redshift)) & (l['LAMBDA']<=wave[1]/(1+redshift))]
 
     return self.linelist
 
@@ -2963,7 +2963,7 @@ class CXIonSpectrum_N(CXIonSpectrum):
     return self.spectrum * collvelocity
 
 
-  def calc_linelist(self, collenergy, collvelocity, specrange, specunit='A'):
+  def calc_linelist(self, collenergy, collvelocity, specrange, specunit='A', redshift=0.0):
     """
     Calculate the spectrum of the data
 
@@ -3007,15 +3007,15 @@ class CXIonSpectrum_N(CXIonSpectrum):
     if len(self.ionlinedata) > 0:
 
       l['EPSILON'] = new_epsilon * collvelocity
-      l['LAMBDA'] =  self.ionlinedata['LAMBDA']
+      l['LAMBDA'] =  self.ionlinedata['Lambda']
       l['ENERGY'] = pyatomdb.const.HC_IN_KEV_A/l['LAMBDA']
-      l['ELEMENT'] = self.ionlinedata['ELEMENT']
-      l['ION'] = self.ionlinedata['ION']
-      l['ION_DRV'] = self.ionlinedata['ION_DRV']
-      l['UPPERLEV'] = self.ionlinedata['UPPERLEV']
-      l['LOWERLEV'] = self.ionlinedata['LOWERLEV']
+      l['ELEMENT'] = self.ionlinedata['Element']
+      l['ION'] = self.ionlinedata['Ion']
+      l['ION_DRV'] = self.ionlinedata['Ion_drv']
+      l['UPPERLEV'] = self.ionlinedata['UpperLev']
+      l['LOWERLEV'] = self.ionlinedata['LowerLev']
 
-    self.linelist = l[(l['LAMBDA']>=wave[0]) & (l['LAMBDA']<=wave[1])]
+    self.linelist = l[(l['LAMBDA']>=wave[0]/(1+redshift)) & (l['LAMBDA']<=wave[1]/(1+redshift))]
 
     return self.linelist
 
@@ -3486,16 +3486,31 @@ def get_full_line_info(linelist, filemap="$ATOMDB/filemap_acx", atomdbroot="$ATO
     ladat = pyatomdb.atomdb.get_data(l['ELEMENT'], l['ION'], 'LA', datacache=datacache, \
              settings=settings)
 
-    dout[i]['UPPERCFG'] = lvdat[1].data['ELEC_CONFIG'][l['UPPERLEV']-1]
-    dout[i]['UPPERSYM'] = lvdat_to_termsymb(lvdat[1].data[l['UPPERLEV']-1])
+    
+    try:
 
-    dout[i]['LOWERCFG'] = lvdat[1].data['ELEC_CONFIG'][l['LOWERLEV']-1]
-    dout[i]['LOWERSYM'] = lvdat_to_termsymb(lvdat[1].data[l['LOWERLEV']-1])
+      dout[i]['UPPERCFG'] = lvdat[1].data['ELEC_CONFIG'][l['UPPERLEV']-1]
+      dout[i]['UPPERSYM'] = lvdat_to_termsymb(lvdat[1].data[l['UPPERLEV']-1])
+    except IndexError:
+      dout[i]['UPPERCFG'] = 'NOMATCH'
+      dout[i]['UPPERSYM'] = 'NOMATCH'
 
-    j = numpy.where( (ladat[1].data['UPPER_LEV']==l['UPPERLEV']) &\
+    try:
+      dout[i]['LOWERCFG'] = lvdat[1].data['ELEC_CONFIG'][l['LOWERLEV']-1]
+      dout[i]['LOWERSYM'] = lvdat_to_termsymb(lvdat[1].data[l['LOWERLEV']-1])
+    except IndexError:
+      dout[i]['LOWERCFG'] = 'NOMATCH'
+      dout[i]['LOWERSYM'] = 'NOMATCH'
+
+    try:
+      j = numpy.where( (ladat[1].data['UPPER_LEV']==l['UPPERLEV']) &\
                      (ladat[1].data['LOWER_LEV']==l['LOWERLEV']))[0][0]
-    dout[i]['EINSTEIN_A'] = ladat[1].data['EINSTEIN_A'][j]
-    dout[i]['B_RATIO'] = ladat[1].data['EINSTEIN_A'][j]/lvdat[1].data['ARAD_TOT'][l['UPPERLEV']-1]
+      dout[i]['EINSTEIN_A'] = ladat[1].data['EINSTEIN_A'][j]
+      dout[i]['B_RATIO'] = ladat[1].data['EINSTEIN_A'][j]/lvdat[1].data['ARAD_TOT'][l['UPPERLEV']-1]
+    except IndexError:
+      dout[i]['EINSTEIN_A'] = -1
+      dout[i]['B_RATIO'] = -1
+		
 
   return(dout)
 
@@ -3576,13 +3591,10 @@ def download_acx_emissivity_files(adbroot, userid, version, donor):
     tmpdir = adbroot+'/installtmp'
 
 
-  print("making directory %s"%(tmpdir))
   pyatomdb.util.mkdir_p(tmpdir)
 
   # get the files
   urllib.request.urlcleanup()
-  print('%s/releases/%s'%(pyatomdb.const.FTPPATH,fname))
-  print("%s/%s"%(tmpdir, fname))
   fnameout = wget.download('%s/releases/%s'%(pyatomdb.const.FTPPATH,fname), out="%s/%s"%(tmpdir, fname))
   # collect user statistics if allowed.
   pyatomdb.util.record_upload(fname)
